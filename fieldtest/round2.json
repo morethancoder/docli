@@ -1,0 +1,400 @@
+[
+ {
+  "source": "antd",
+  "model": "haiku",
+  "answers": [
+   {
+    "question": "1. What is the default duration of Toast.show, in milliseconds?",
+    "answer": "2000 ms. The Toast.show props table in Toast.md lists duration as `number`, default `2000`, where 0 means it is not closed automatically. Toast.config can change it globally.",
+    "file_read": "/private/tmp/claude-501/-Users-alitahseen-Projects-CLI-docli/9b0a52c8-5874-40b4-a8e6-6a77d0554757/scratchpad/field/r2/antd-haiku/.docli/antd-mobile-toast/Toast.md",
+    "tokens_read": 429
+   },
+   {
+    "question": "2. What is the default size of the Button component?",
+    "answer": "'middle'. The Button Props table in Button.md lists size as `'mini' | 'small' | 'middle' | 'large'`, default `'middle'`.",
+    "file_read": "/private/tmp/claude-501/-Users-alitahseen-Projects-CLI-docli/9b0a52c8-5874-40b4-a8e6-6a77d0554757/scratchpad/field/r2/antd-haiku/.docli/antd-mobile-components/Button.md",
+    "tokens_read": 490
+   },
+   {
+    "question": "3. What values does the Button fill prop accept?",
+    "answer": "'solid' | 'outline' | 'none'. Default is 'solid'. Listed in the Button Props table in Button.md.",
+    "file_read": "/private/tmp/claude-501/-Users-alitahseen-Projects-CLI-docli/9b0a52c8-5874-40b4-a8e6-6a77d0554757/scratchpad/field/r2/antd-haiku/.docli/antd-mobile-components/Button.md",
+    "tokens_read": 490
+   }
+  ],
+  "commands": [
+   "docli --help (exit 0)",
+   "docli add --help (exit 0)",
+   "docli add https://mobile.ant.design --name antd-mobile (exit 0, landing page only: 1 file, 1.0k tok)",
+   "docli add https://mobile.ant.design/components --name antd-mobile-components (exit 0, 4 files, 1.8k tok)",
+   "docli tree antd-mobile-components and docli tree antd-mobile (exit 0)",
+   "docli search Toast --path .docli (exit 0, no matches)",
+   "docli show antd-mobile-components/Button.md (exit 0)",
+   "docli add https://mobile.ant.design/components/toast --name antd-mobile-toast (exit 0, 4 files, 2.1k tok)",
+   "docli search Toast (exit 0, 3 matches)",
+   "docli show antd-mobile-toast/Toast.md (exit 0)"
+  ],
+  "files": 9,
+  "problems": [
+   {
+    "what": "docli add on the site root reported success for a landing page: the output was '✓ antd-mobile v1 · 1 files · 1.0k tok' and exit 0, and the docs were not in the download. The page's real content was only a link list, so the download had to be redone with a different URL.",
+    "severity": "wrong",
+    "command": "docli add https://mobile.ant.design --name antd-mobile",
+    "output": "✓ antd-mobile v1 · 1 files · 1.0k tok ... few files: this may be a landing page. The docs may be at: https://mobile.ant.design/guide ... hint: this page split into few files and may be a landing page; the docs may be at https://mobile.ant.design/guide (see data.suggestions)"
+   },
+   {
+    "what": "The landing-page hint says 'see data.suggestions', a JSON field name. Human output has no data.suggestions, so the hint points to something the user cannot see unless they pass --json.",
+    "severity": "friction",
+    "command": "docli add https://mobile.ant.design --name antd-mobile"
+   },
+   {
+    "what": "The suggested docs links (/guide, /components, quick-start, faq) do not include the Toast page. Toast was only reachable by guessing /components/toast; the components page did not have it either. The search hint after the components download did not suggest where Toast lives.",
+    "severity": "friction",
+    "command": "docli search Toast (before the toast add)",
+    "output": "no matches for \"Toast\" ... The term may be on another page of the site; add it with `docli add <url>`"
+   },
+   {
+    "what": "The components page was split into 4 files, and Demos.md is 1.3k tokens. Only Button.md was needed. The tree shows no per-component files, so finding the Button section needed a search or a guess.",
+    "severity": "friction",
+    "command": "docli tree antd-mobile-components",
+    "output": "Button.md section 490 tok; Demos.md section 1.3k tok; when-to-use.md; _overview.md"
+   },
+   {
+    "what": "Downloads that needed the headless-browser fallback were slow. The home page took 8.0 s wall time and the components page took 20.5 s. The output says 'static page had no real content; loaded with headless browser' with no progress.",
+    "severity": "friction",
+    "command": "docli add https://mobile.ant.design/components --name antd-mobile-components",
+    "output": "... 0.82s user 0.58s system 6% cpu 20.469 total"
+   },
+   {
+    "what": "The task folder path given in the instructions did not exist, so the first shell command failed with 'no such file or directory'. I created it with mkdir -p. This is not a docli bug, but the task text said the folder was already there.",
+    "severity": "friction",
+    "command": "cd <r2/antd-haiku> && docli --help",
+    "output": "(eval):cd:1: no such file or directory"
+   }
+  ],
+  "add_ok": true,
+  "budget_kept": true
+ },
+ {
+  "source": "antd",
+  "model": "sonnet",
+  "answers": [
+   {
+    "question": "Default duration of Toast.show (ms)?",
+    "answer": "2000 ms (Toast.show props table: duration, 'Prompt duration, if it is 0, it will not be closed automatically', number, default 2000)",
+    "file_read": ".docli/toast/Toast.md",
+    "tokens_read": 600
+   },
+   {
+    "question": "Default size of Button?",
+    "answer": "'middle' (size: 'mini' | 'small' | 'middle' | 'large', default 'middle')",
+    "file_read": ".docli/button/Button.md",
+    "tokens_read": 600
+   },
+   {
+    "question": "Values accepted by Button fill prop?",
+    "answer": "'solid' | 'outline' | 'none' (default 'solid')",
+    "file_read": ".docli/button/Button.md",
+    "tokens_read": 0
+   }
+  ],
+  "commands": [
+   "docli --help (exit 0; first attempt failed because folder did not exist, then mkdir -p)",
+   "docli add --help (0)",
+   "docli add https://mobile.ant.design --name antd (0, landing page only, 1 file)",
+   "docli add https://mobile.ant.design/llms.txt --name antdllm (1, 404)",
+   "docli add https://mobile.ant.design/components/button --name button (0)",
+   "docli add https://mobile.ant.design/components/toast --name toast (0)",
+   "docli tree button; docli tree toast (0); cat .docli/toast/INDEX.md",
+   "docli search duration; docli search fill (0)",
+   "docli show button/Button; docli show toast/Toast | head -20 (0)"
+  ],
+  "add_ok": true,
+  "files": 9,
+  "problems": [
+   {
+    "what": "Assigned folder did not exist, so the mandated cd prefix failed",
+    "severity": "friction",
+    "command": "cd .../field/r2/antd-sonnet",
+    "output": "(eval):cd:1: no such file or directory: .../r2/antd-sonnet"
+   },
+   {
+    "what": "docli add on the site root downloads only a 1-file landing page (1.0k tok); the whole site is not crawled, and each component page must be added separately by URL. Hint does suggest sub-URLs but offers no crawl/multi-page option.",
+    "severity": "friction",
+    "command": "docli add https://mobile.ant.design --name antd",
+    "output": "few files: this may be a landing page. The docs may be at: https://mobile.ant.design/guide ..."
+   },
+   {
+    "what": "/llms.txt does not exist on site, 404 (expected, no docli bug)",
+    "severity": "friction",
+    "command": "docli add https://mobile.ant.design/llms.txt --name antdllm",
+    "output": "error: GET https://mobile.ant.design/llms.txt: 404 Not Found"
+   },
+   {
+    "what": "docli search output has no query-hit context for the Toast.show duration (the Demos hit line 121 'duration: 5000' could mislead; real default is in Toast.md). Also search results do not show source name prefix consistently; path form 'button/Button' worked in show.",
+    "severity": "friction"
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "datastar",
+  "model": "haiku",
+  "answers": [
+   {
+    "question": "1. What is the default interval duration of the data-on-interval attribute?",
+    "answer": "One second (1s). The doc says: \"The interval duration defaults to one second and can be modified using the `__duration` modifier.\" The modifier `__duration.500ms` sets 500 ms, and `.leading` runs the first interval immediately.",
+    "file_read": "/private/tmp/claude-501/-Users-alitahseen-Projects-CLI-docli/9b0a52c8-5874-40b4-a8e6-6a77d0554757/scratchpad/field/r2/datastar-haiku/.docli/datastar-docs/attributes/data-on-interval.md",
+    "tokens_read": 179
+   },
+   {
+    "question": "2. What is the default value of the retryMaxCount option of backend actions (e.g. @get)?",
+    "answer": "10. The doc says: \"`retryMaxCount` – The maximum number of retry attempts. Defaults to `10`.\"",
+    "file_read": "/private/tmp/claude-501/-Users-alitahseen-Projects-CLI-docli/9b0a52c8-5874-40b4-a8e6-6a77d0554757/scratchpad/field/r2/datastar-haiku/.docli/datastar-docs/actions/backend-actions/Options.md",
+    "tokens_read": 713
+   },
+   {
+    "question": "3. What is the default of the openWhenHidden option for get requests?",
+    "answer": "false. The doc says: \"Defaults to `false` for `get` requests, and `true` for all other HTTP methods.\" (Same file as Q2, read once, so its 713 tokens are shared with Q2.)",
+    "file_read": "/private/tmp/claude-501/-Users-alitahseen-Projects-CLI-docli/9b0a52c8-5874-40b4-a8e6-6a77d0554757/scratchpad/field/r2/datastar-haiku/.docli/datastar-docs/actions/backend-actions/Options.md",
+    "tokens_read": 0
+   }
+  ],
+  "commands": [
+   "cd <field-folder> && docli --help (FAILED, exit 1: the shell cd failed because datastar-haiku did not exist; not a docli error)",
+   "mkdir -p <field-folder> && docli --help (exit 0)",
+   "docli add --help (exit 0)",
+   "docli add https://data-star.dev --name datastar (exit 0)",
+   "docli add https://data-star.dev/docs.md --name datastar-docs (exit 0)",
+   "docli search --help (exit 0)",
+   "docli search \"data-on-interval\" --path .docli (exit 0)",
+   "docli show datastar-docs/attributes/data-on-interval.md --path .docli (exit 0)",
+   "docli search retryMaxCount --path .docli (exit 0)",
+   "docli search openWhenHidden --path .docli (exit 0)",
+   "docli show datastar-docs/actions/backend-actions/Options.md --path .docli (exit 0)"
+  ],
+  "files": 153,
+  "problems": [
+   {
+    "what": "Landing-page URL reported as success. `docli add https://data-star.dev` printed a success check and 'coverage ok' for only 8 files (2.0k tok) of landing-page content, not the reference docs. The 'few files' warning and landing-page hint are shown below the success line, so the success marker is misleading.",
+    "severity": "wrong",
+    "command": "docli add https://data-star.dev --name datastar",
+    "output": "✓ datastar v1 · 8 files · 2.0k tok → .docli/datastar\n  parsed as html\n  coverage ok: all 599 source words are in exactly one file\n  few files: this may be a landing page. The docs may be at:\n    https://data-star.dev/docs.md ..."
+   },
+   {
+    "what": "The useless 8-file 'datastar' source stays in .docli after the real docs were added from docs.md, so the folder now holds two overlapping Datastar sources with no cleanup step or hint to remove it.",
+    "severity": "friction",
+    "command": "docli add https://data-star.dev --name datastar",
+    "output": "(source left in .docli/datastar alongside .docli/datastar-docs)"
+   },
+   {
+    "what": "The hint pointing to docs.md worked and the second add was clean, but `add --help` does not warn that a site root may be a landing page or mention the docs.md route, so the user has to find that hint in the output.",
+    "severity": "friction",
+    "command": "docli add --help",
+    "output": "Usage: docli add <url|file> [flags] (no note about landing pages or docs.md)"
+   },
+   {
+    "what": "Search snippets are cut mid-sentence with '…', and the openWhenHidden hit came from get.md, which does not state the default. The default needed a separate show of Options.md (713 tokens) that the search output did not point to.",
+    "severity": "friction",
+    "command": "docli search openWhenHidden --path .docli",
+    "output": "@get()  section  datastar-docs/actions/backend-actions/get.md · 501 tok\n    line 13: …s visible again. To keep the connection open when the page is hidden, set the `openWhenHidden` option to `true`."
+   },
+   {
+    "what": "The field folder given in the task (.../field/r2/datastar-haiku) did not exist, so the first shell command failed. I created it with mkdir -p.",
+    "severity": "friction",
+    "command": "cd <field-folder> && docli --help",
+    "output": "(eval):cd:1: no such file or directory: .../scratchpad/field/r2/datastar-haiku"
+   }
+  ],
+  "budget_kept": true,
+  "add_ok": true
+ },
+ {
+  "source": "datastar",
+  "model": "sonnet",
+  "answers": [
+   {
+    "question": "Default interval duration of data-on-interval?",
+    "answer": "1 second (one second; `.1s` marked default, modifiable via `__duration`).",
+    "file_read": "datastar/attributes/data-on-interval.md",
+    "tokens_read": 179
+   },
+   {
+    "question": "Default of retryMaxCount for backend actions?",
+    "answer": "10 (maximum number of retry attempts).",
+    "file_read": "datastar/actions/backend-actions/Options.md",
+    "tokens_read": 713
+   },
+   {
+    "question": "Default of openWhenHidden for get requests?",
+    "answer": "false for get requests (true for all other HTTP methods).",
+    "file_read": "datastar/actions/backend-actions/Options.md",
+    "tokens_read": 0
+   }
+  ],
+  "commands": [
+   "mkdir -p <folder> (folder did not exist; first cd failed) - exit 0",
+   "docli --help - exit 0",
+   "docli add --help - exit 0",
+   "docli add https://data-star.dev --name datastar - exit 0 (8 files, landing page)",
+   "docli remove datastar && docli add https://data-star.dev/docs.md --name datastar - exit 0 (145 files, 49k tok)",
+   "docli search --help && docli search \"interval\" - exit 0",
+   "docli show --help; docli show datastar/attributes/data-on-interval.md; docli show datastar/actions/backend-actions/Options.md - exit 0"
+  ],
+  "add_ok": true,
+  "files": 145,
+  "problems": [
+   {
+    "what": "The assigned folder did not exist, though the task said it was empty. The first command failed on cd. I created it with mkdir -p.",
+    "severity": "friction",
+    "command": "cd .../field/r2/datastar-sonnet",
+    "output": "(eval):cd:1: no such file or directory: ..."
+   },
+   {
+    "what": "Adding the bare site URL gave only a landing page. It was a useful hint, since docli suggested https://data-star.dev/docs.md, which worked. Not a bug.",
+    "severity": "friction",
+    "command": "docli add https://data-star.dev --name datastar",
+    "output": "few files: this may be a landing page. The docs may be at: https://data-star.dev/docs.md  all docs in one Markdown file"
+   },
+   {
+    "what": "I had to remove the landing-page source before re-adding under the same name. The hint says to run `docli add <url>`, but I did not test whether adding under the same name overwrites. I used `docli remove` first.",
+    "severity": "friction"
+   },
+   {
+    "what": "`docli search \"interval\"` listed the data-on-interval section by path and token count. For the retryMaxCount question I read Options.md directly instead of searching, because the earlier search had already shown the Options.md path. Its content hit only showed the retryInterval line, not retryMaxCount or openWhenHidden. Search shows only one matching line per section, so I still had to open the file.",
+    "severity": "friction"
+   },
+   {
+    "what": "`docli show` printed the full YAML header on each file (about 10 lines). It cost a few tokens but is harmless. The 713-token Options.md also holds the answers to two questions, so one read covered both.",
+    "severity": "friction"
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "telegram",
+  "model": "haiku",
+  "answers": [
+   {
+    "question": "1. Which parameters of the sendMessage method are required?",
+    "answer": "Only `text` is marked Required = Yes in the sendMessage table (String, \"1-4096 characters after entities parsing\"). Every other row is marked Optional. Caveat: `chat_id` is marked Optional, but its description says it is \"required unless the message is sent as an ephemeral reply to a callback query\". The page is internally inconsistent on chat_id, so the answer is `text` alone per the table, with chat_id as a likely required parameter in practice.",
+    "file_read": "telegram/available-methods/sendMessage.md",
+    "tokens_read": 900
+   },
+   {
+    "question": "2. What is the allowed length of callback_data in an InlineKeyboardButton?",
+    "answer": "1-64 bytes. Source: InlineKeyboardButton row `callback_data | String | Optional. Data to be sent in a callback query to the bot when the button is pressed, 1-64 bytes`.",
+    "file_read": "telegram/available-types/InlineKeyboardButton.md (found via docli search callback_data)",
+    "tokens_read": 1000
+   },
+   {
+    "question": "3. What is the default value of the timeout parameter of getUpdates?",
+    "answer": "0. The getUpdates timeout row says: \"Timeout in seconds for long polling. Defaults to 0, i.e. usual short polling.\"",
+    "file_read": "telegram/getting-updates/getUpdates.md",
+    "tokens_read": 490
+   }
+  ],
+  "commands": [
+   "docli --help (exit 0)",
+   "docli add --help (exit 0)",
+   "docli add https://core.telegram.org/bots/api --preset telegram-bot-api --name telegram (exit 0; 648 files, 155k tok, coverage ok)",
+   "docli search sendMessage (exit 0)",
+   "docli search --help (exit 0)",
+   "docli show telegram/available-methods/sendMessage (exit 0)",
+   "docli search callback_data --limit 8 (exit 0)",
+   "docli show telegram/available-types/InlineKeyboardButton (exit 0; output cut with head -c 4000 by me)",
+   "docli search getUpdates --limit 5 (exit 0)",
+   "docli tree telegram/getting-updates (exit 1)",
+   "docli show telegram/getting-updates/getUpdates (exit 0)",
+   "Not docli: first shell cd into the assigned folder failed (exit 1, folder missing); created it with mkdir -p. Also used shell ls and head on .docli/telegram/INDEX.md to orient, reading about 700 tokens."
+  ],
+  "add_ok": true,
+  "problems": [
+   {
+    "what": "The assigned working folder did not exist, although the brief said it was empty and existing. The first command failed, so I created it with mkdir -p. Not a docli problem.",
+    "severity": "friction",
+    "command": "cd /private/tmp/claude-501/-Users-alitahseen-Projects-CLI-docli/9b0a52c8-5874-40b4-a8e6-6a77d0554757/scratchpad/field/r2/telegram-haiku && ...",
+    "output": "(eval):cd:1: no such file or directory: /private/tmp/claude-501/-Users-alitahseen-Projects-CLI-docli/9b0a52c8-5874-40b4-a8e6-6a77d0554757/scratchpad/field/r2/telegram-haiku"
+   },
+   {
+    "what": "docli tree rejects a folder path inside a source. The error does not say how to address a folder, and I did not run `docli tree --help` to check the expected form before reporting it.",
+    "severity": "friction",
+    "command": "docli tree telegram/getting-updates",
+    "output": "error: no source named \"telegram/getting-updates\" (see `docli list`)"
+   },
+   {
+    "what": "The sendMessage parameter table is internally inconsistent: chat_id is marked Optional, but its description says it is required unless the message is an ephemeral reply to a callback query. This could be wording in the source page or a parse problem. I could not check the live page, so it is unverified whether docli caused it.",
+    "severity": "wrong",
+    "command": "docli show telegram/available-methods/sendMessage",
+    "output": "|chat_id|Integer or String|Optional|Unique identifier for the target chat ... required unless the message is sent as an ephemeral reply to a callback query|"
+   },
+   {
+    "what": "The `add` summary reports a 648-file, 155k-token download, but `docli show` on a search hit printed a snippet mid-word in one search result (\"…ceiver_user_id* in the parameter …\"). Ellipsis snippets are hard to act on; no full-line context was given beyond the snippet.",
+    "severity": "friction",
+    "command": "docli search sendMessage",
+    "output": "November 9, 2026  changelog-entry  telegram/recent-changes/november-9-2026.md · 2.0k tok\n    line 20: …ceiver_user_id* in the parameter *ephemeral_message_parameters* of the methods sendMessage..."
+   }
+  ],
+  "budget_kept": true,
+  "files": 648
+ },
+ {
+  "source": "telegram",
+  "model": "sonnet",
+  "answers": [
+   {
+    "question": "Which parameters of sendMessage are required?",
+    "answer": "Only `text` is marked Required=Yes in the parameter table (String, 1-4096 characters after entities parsing). `chat_id` is marked Optional in the table, but its description says it is required unless the message is sent as an ephemeral reply to a callback query. So in practice `chat_id` plus `text`, but strictly per the Required column only `text`. The table marks chat_id Optional, which may mislead an agent.",
+    "tokens_read": 864,
+    "file_read": "telegram/available-methods/sendMessage.md"
+   },
+   {
+    "question": "Allowed length of callback_data in InlineKeyboardButton?",
+    "answer": "1-64 bytes",
+    "tokens_read": 60,
+    "file_read": "telegram/available-types/InlineKeyboardButton.md (via search snippet, line 9)"
+   },
+   {
+    "question": "Default value of the timeout parameter of getUpdates?",
+    "answer": "0 (usual short polling). Source: 'Timeout in seconds for long polling. Defaults to 0, i.e. usual short polling.'",
+    "tokens_read": 50,
+    "file_read": "telegram/getting-updates/getUpdates.md (grep of the show output; the file is 488 tok)"
+   }
+  ],
+  "commands": [
+   "mkdir -p <folder> (exit 0; the folder did not exist, and my first cd failed)",
+   "docli --help (exit 0)",
+   "docli add --help; docli search --help; docli show --help (exit 0)",
+   "docli add https://core.telegram.org/bots/api --name telegram (exit 0; 648 files, 155k tok, coverage ok)",
+   "docli show sendMessage (exit 0)",
+   "docli search callback_data --limit 5 (exit 0); docli search getUpdates --limit 5 (exit 0)",
+   "docli show getUpdates | grep -i -E 'timeout|^tokens' (exit 0)"
+  ],
+  "add_ok": true,
+  "files": 648,
+  "problems": [
+   {
+    "what": "The assigned folder did not exist, so the first command failed. I created it with mkdir -p.",
+    "severity": "friction",
+    "command": "cd .../field/r2/telegram-sonnet && docli --help",
+    "output": "(eval):cd:1: no such file or directory: .../field/r2/telegram-sonnet"
+   },
+   {
+    "what": "In the sendMessage table, chat_id has Required = 'Optional', even though it is effectively required (its description says 'required unless the message is sent as an ephemeral reply to a callback query'). An agent reading only the Required column would miss it. This is likely upstream's own wording, since the page now documents ephemeral replies. The answer to question 1 needs careful reading.",
+    "severity": "friction",
+    "command": "docli show sendMessage",
+    "output": "|chat_id|Integer or String|Optional|Unique identifier for the target chat ... required unless the message is sent as an ephemeral reply to a callback query|"
+   },
+   {
+    "what": "`docli show` printed the whole file with no way to select a line or section. I used grep on the output to avoid reading all of it. The files were small here (864 and 488 tok), so this was not a real problem.",
+    "severity": "friction",
+    "command": "docli show getUpdates"
+   },
+   {
+    "what": "`docli add --help` does not mention that --preset telegram-bot-api exists beyond a short flag line, and I did not need it. The default `add` worked first time with coverage ok. No real problem.",
+    "severity": "friction"
+   }
+  ],
+  "budget_kept": true
+ }
+]

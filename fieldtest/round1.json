@@ -1,0 +1,469 @@
+[
+ {
+  "source": "antd",
+  "model": "haiku",
+  "answers": [
+   {
+    "question": "What is the default duration of Toast.show, in milliseconds?",
+    "answer": "2000 ms. Toast.md props table: duration, type number, default 2000 (\"Prompt duration, if it is `0`, it will not be closed automatically\").",
+    "file_read": "/private/tmp/claude-501/-Users-alitahseen-Projects-CLI-docli/9b0a52c8-5874-40b4-a8e6-6a77d0554757/scratchpad/field/r1/antd-haiku/.docli/antd-mobile-toast/Toast.md",
+    "tokens_read": 429
+   },
+   {
+    "question": "What is the default size of the Button component?",
+    "answer": "'middle' (size prop, type 'mini' | 'small' | 'middle' | 'large', default 'middle').",
+    "file_read": "/private/tmp/claude-501/-Users-alitahseen-Projects-CLI-docli/9b0a52c8-5874-40b4-a8e6-6a77d0554757/scratchpad/field/r1/antd-haiku/.docli/antd-mobile-button/Button.md",
+    "tokens_read": 490
+   },
+   {
+    "question": "What values does the Button fill prop accept?",
+    "answer": "'solid' | 'outline' | 'none' (default 'solid'). Stated as \"The fill mode.\" in Button.md props table.",
+    "file_read": "/private/tmp/claude-501/-Users-alitahseen-Projects-CLI-docli/9b0a52c8-5874-40b4-a8e6-6a77d0554757/scratchpad/field/r1/antd-haiku/.docli/antd-mobile-button/Button.md",
+    "tokens_read": 490
+   }
+  ],
+  "commands": [
+   "docli --help (exit 0)",
+   "docli add --help, docli search --help, docli show --help (exit 0)",
+   "docli add https://mobile.ant.design --name antd-mobile (exit 1: coverage check failed)",
+   "docli inspect --help (exit 0)",
+   "docli inspect https://mobile.ant.design --name antd-mobile (exit 0, coverage FAILED shown)",
+   "docli inspect https://mobile.ant.design/components/toast --name antd-mobile --render browser (exit 0, coverage FAILED shown)",
+   "docli add https://mobile.ant.design/components/toast --name antd-mobile-toast --render browser (exit 1: coverage check failed)",
+   "docli inspect https://mobile.ant.design/components/button --name antd-mobile-button --render browser (exit 0, coverage FAILED shown)",
+   "docli add https://mobile.ant.design/components/button --name antd-mobile-button --render browser --force (exit 0, wrote 4 files)",
+   "docli tree antd-mobile-button (exit 0)",
+   "docli add https://mobile.ant.design/components/toast --name antd-mobile-toast --render browser --force (exit 0, wrote 4 files)",
+   "docli search duration --source antd-mobile-toast (exit 0)",
+   "docli show Toast --source antd-mobile-toast (exit 0)",
+   "docli show Button --source antd-mobile-button (exit 0)"
+  ],
+  "files": 8,
+  "add_ok": true,
+  "problems": [
+   {
+    "what": "Root URL https://mobile.ant.design is a landing page with no docs content. add fails on it; inspect parses it as one 1.0k-token file with an empty heading list and gives no hint to try a component URL.",
+    "severity": "blocker",
+    "command": "docli add https://mobile.ant.design --name antd-mobile",
+    "output": "error: coverage check failed: 1 of 244 source words missing, 2 duplicated (missing \"byxtech\" ×1, extra \"by\" ×1, extra \"xtech\" ×1). Preview with `docli inspect`, adjust the selector or drop rules, or pass --force to write anyway"
+   },
+   {
+    "what": "Component pages fail the coverage check with 0 words missing, only duplicated tokens from demo file names (tsx/ts). The check is a false positive here and blocks add without --force. The error suggests --drop or --selector but gives no way to find the right selector.",
+    "severity": "blocker",
+    "command": "docli add https://mobile.ant.design/components/toast --name antd-mobile-toast --render browser",
+    "output": "error: coverage check failed: 0 of 493 source words missing, 2 duplicated (extra \"ts\" ×1, extra \"tsx\" ×1). Preview with `docli inspect`, adjust the selector or drop rules, or pass --force to write anyway"
+   },
+   {
+    "what": "inspect reports coverage FAILED but exits 0, so scripts cannot tell a failing preview from a passing one.",
+    "severity": "wrong",
+    "command": "docli inspect https://mobile.ant.design/components/button --name antd-mobile-button --render browser",
+    "output": "coverage FAILED: 0 missing, 2 duplicated of 519 words (extra \"tsx\" ×2)  (exit 0)"
+   },
+   {
+    "what": "add --force prints a success line with a ✓ and then still prints 'coverage FAILED'. The exit code is 0, so the output contradicts itself and nothing marks the source as forced.",
+    "severity": "friction",
+    "command": "docli add https://mobile.ant.design/components/button --name antd-mobile-button --render browser --force",
+    "output": "✓ antd-mobile-button v1 · 4 files · 1.8k tok → .docli/antd-mobile-button\n  coverage FAILED: 0 missing, 2 duplicated of 519 words (extra \"tsx\" ×2)"
+   },
+   {
+    "what": "Search for 'duration' returns demo code lines (line 121: duration: 5000,) ahead of the API table row, and the table row is cut off mid-cell with a backtick. The result is noisy, and the answer needed a full show of Toast.md.",
+    "severity": "friction",
+    "command": "docli search duration --source antd-mobile-toast",
+    "output": "Toast  section  antd-mobile-toast/Toast.md · 429 tok\n    line 13: |duration|Prompt duration, if it is `0`, it will not be closed automatically|`n…"
+   },
+   {
+    "what": "Help text for add --render says 'auto, static or browser' without saying what auto does. Auto did detect the JS-built root page and switch to the headless browser, but the output only says so in one line. Users must test it to learn the behaviour.",
+    "severity": "friction",
+    "command": "docli add --help",
+    "output": "--render string         auto, static or browser (browser runs JavaScript)"
+   },
+   {
+    "what": "Each docs page needs its own source name. Two Ant Design Mobile components needed two sources, and the site's docs tree could not be pulled as one source from the root. I did not test whether a second add to the same --name merges or replaces.",
+    "severity": "friction",
+    "command": "docli add ... --name antd-mobile-toast / --name antd-mobile-button",
+    "output": "n/a (design observation; not tested)"
+   },
+   {
+    "what": "Command budget overrun: 16 docli invocations including help, against a target of about 15. The extra calls were the forced re-adds after the coverage failures on the component pages.",
+    "severity": "friction",
+    "command": "n/a",
+    "output": "n/a"
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "antd",
+  "model": "sonnet",
+  "answers": [
+   {
+    "question": "What is the default duration of Toast.show, in milliseconds?",
+    "answer": "2000 ms (Toast.md props table: duration, default 2000; 0 means it is not closed automatically)",
+    "file_read": ".docli/antd-toast/Toast.md (grep line only)",
+    "tokens_read": 60
+   },
+   {
+    "question": "What is the default size of the Button component?",
+    "answer": "'middle' (size accepts 'mini' | 'small' | 'middle' | 'large', default 'middle')",
+    "file_read": ".docli/antd-button/Button.md",
+    "tokens_read": 490
+   },
+   {
+    "question": "What values does the Button fill prop accept?",
+    "answer": "'solid' | 'outline' | 'none' (default 'solid')",
+    "file_read": ".docli/antd-button/Button.md",
+    "tokens_read": 0
+   }
+  ],
+  "commands": [
+   "docli --help (0)",
+   "docli add --help (0)",
+   "docli add https://mobile.ant.design --name antd (1: TLS handshake timeout)",
+   "docli add https://mobile.ant.design --name antd (1: coverage check failed)",
+   "docli add https://mobile.ant.design --name antd --render browser (1: coverage failed)",
+   "docli add https://mobile.ant.design/llms.txt --name antd (1: 404)",
+   "docli add https://mobile.ant.design/components/button --name antd-button; docli add .../en/components/button --name antd-button (1, 1: coverage fail; 404)",
+   "docli add .../components/button --name antd-button --force; docli tree antd-button (0)",
+   "docli show antd-button Button (1: accepts 1 arg(s), received 2)",
+   "docli add .../components/toast --name antd-toast --force; docli search Toast duration --help (0)",
+   "docli show --help; cat .docli/antd-button/Button.md; ls and grep .docli/antd-toast (0)"
+  ],
+  "add_ok": true,
+  "files": 8,
+  "problems": [
+   {
+    "what": "Transient network failure on first add",
+    "severity": "friction",
+    "command": "docli add https://mobile.ant.design --name antd",
+    "output": "error: Get \"https://mobile.ant.design\": net/http: TLS handshake timeout (no retry; the second identical run succeeded)"
+   },
+   {
+    "what": "The site root is a landing page, not docs, and it fails the coverage check because of a one-word difference. The 'missing byxtech' is a logo or text word-boundary issue. Browser rendering gives the same result. The error does not say the page is only a landing page with no docs, so there was no hint to try component URLs.",
+    "severity": "wrong",
+    "command": "docli add https://mobile.ant.design --name antd [--render browser]",
+    "output": "error: coverage check failed: 1 of 244 source words missing, 2 duplicated (missing \"byxtech\" ×1, extra \"by\" ×1, extra \"xtech\" ×1). Preview with `docli inspect`..."
+   },
+   {
+    "what": "The site offers no llms.txt and no crawl option. docli add handles one page only, so a whole site needs one add per page. Docs for each component were found only by guessing URLs. Nothing says add does not follow links.",
+    "severity": "friction",
+    "command": "docli add https://mobile.ant.design/llms.txt",
+    "output": "error: GET https://mobile.ant.design/llms.txt: 404 Not Found"
+   },
+   {
+    "what": "Coverage check fails on every component page with a false positive. The code-block language labels (tsx, ts) are counted as 'duplicated' words. The user must pass --force on every page. The first add, without --force, writes nothing, so the user pays for the same download twice.",
+    "severity": "wrong",
+    "command": "docli add https://mobile.ant.design/components/button --name antd-button",
+    "output": "error: coverage check failed: 0 of 519 source words missing, 2 duplicated (extra \"tsx\" ×2). ... (toast: extra \"ts\" ×1, extra \"tsx\" ×1)"
+   },
+   {
+    "what": "`show` takes only one argument, and a source name plus a section name is a natural thing to try. With several sources, section names like Button are ambiguous unless --source is used. The help text does not show a `<source> <section>` form, and the error does not suggest --source.",
+    "severity": "friction",
+    "command": "docli show antd-button Button",
+    "output": "error: accepts 1 arg(s), received 2"
+   },
+   {
+    "what": "The add output prints 'static page had no real content; loaded with headless browser' and also 'rendered in headless browser' for every page. This is fine but noisy. The main page has the Props table in a clean Markdown table, but the Demos file (1.3k tok) is mostly code. Content for Toast is split across Toast.md, Demos.md, when-to-use.md, and there is no per-component source name unless one uses --name per page.",
+    "severity": "friction"
+   },
+   {
+    "what": "I did not use `docli search` and ran 'search Toast duration --help' to check flags. It printed only the first lines of help (cut by head), which hid the flags. I fell back to grep on the files; the answer came from reading the file directly.",
+    "severity": "friction",
+    "command": "docli search Toast duration --help"
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "datastar",
+  "model": "haiku",
+  "answers": [
+   {
+    "question": "1. What is the default interval duration of the data-on-interval attribute?",
+    "answer": "One second. The reference says: \"The interval duration defaults to one second and can be modified using the `__duration` modifier.\" The `.1s` modifier is listed as the default.",
+    "file_read": ".docli/datastar-reference/data-on-interval.md (via docli show datastar-reference/data-on-interval.md)",
+    "tokens_read": 179
+   },
+   {
+    "question": "2. What is the default value of the retryMaxCount option of backend actions (e.g. @get)?",
+    "answer": "10. Options.md says: \"`retryMaxCount` – The maximum number of retry attempts. Defaults to `10`.\"",
+    "file_read": ".docli/datastar-actions/backend-actions/Options.md (via docli show datastar-actions/backend-actions/Options.md)",
+    "tokens_read": 715
+   },
+   {
+    "question": "3. What is the default of the openWhenHidden option for get requests?",
+    "answer": "false. Options.md says: \"Defaults to `false` for `get` requests, and `true` for all other HTTP methods.\"",
+    "file_read": ".docli/datastar-actions/backend-actions/Options.md (via docli show datastar-actions/backend-actions/Options.md)",
+    "tokens_read": 715
+   }
+  ],
+  "commands": [
+   "docli --help (ok)",
+   "docli add --help (ok)",
+   "docli add https://data-star.dev --name datastar (ok, but incomplete: 8 files, reference pages missing)",
+   "docli tree datastar (ok)",
+   "docli search data-on-interval (no matches)",
+   "docli search --help (ok)",
+   "docli inspect https://data-star.dev/reference/attributes (ok, nothing written)",
+   "docli add https://data-star.dev/reference/attributes --name datastar-reference (ok, 38 files)",
+   "docli search data-on-interval --source datastar-reference (ok)",
+   "docli show datastar-reference/data-on-interval.md (ok)",
+   "docli search retryMaxCount (no matches, in attributes source only)",
+   "docli search openWhenHidden (no matches)",
+   "docli add https://data-star.dev/reference/actions --name datastar-actions (ok, 15 files)",
+   "docli search retryMaxCount --source datastar-actions (ok)",
+   "docli search openWhenHidden --source datastar-actions (ok)",
+   "docli show datastar-actions/backend-actions/Options.md (ok)",
+   "Also: one `cat | head` on .docli/datastar/INDEX.md (a file docli wrote, not a docli command). Total docli invocations: 16."
+  ],
+  "add_ok": true,
+  "problems": [
+   {
+    "what": "docli add https://data-star.dev reports success but misses the reference docs. It wrote only 8 files / 2.0k tok (datastar/ with Datastar.md and a build-reactive-web-apps folder). Pages /reference/attributes and /reference/actions were not captured, so the attributes and actions answers were not in the source. The coverage check only proves the fetched page was split without losing words, not that the whole site was downloaded. An agent that trusts the 'coverage ok' line will answer 'not found' or guess.",
+    "severity": "blocker",
+    "command": "docli add https://data-star.dev --name datastar",
+    "output": "✓ datastar v1 · 8 files · 2.0k tok → .docli/datastar\n  parsed as html\n  coverage ok: all 611 source words are in exactly one file"
+   },
+   {
+    "what": "No way to discover or follow linked sub-pages from a site root. The help has no crawl or follow-links flag, and the output gives no hint that the site has more pages. I had to guess the /reference/attributes and /reference/actions URLs myself.",
+    "severity": "friction",
+    "command": "docli add --help",
+    "output": "Flags list has no crawl/follow/depth option; add output only says 'Next: read .docli/datastar/INDEX.md'"
+   },
+   {
+    "what": "A search miss gives no hint that the term may live in a source that has not been added yet, or which source to add. The same term existed in two docs pages that were not yet in the store.",
+    "severity": "friction",
+    "command": "docli search retryMaxCount / docli search data-on-interval",
+    "output": "no matches for \"retryMaxCount\""
+   },
+   {
+    "what": "Search hits are truncated to about 80 characters with an ellipsis, so the value (for example the default) is often cut off. Each hit then needs a follow-up show, which costs an extra command.",
+    "severity": "friction",
+    "command": "docli search openWhenHidden --source datastar-actions",
+    "output": "    line 9: - `openWhenHidden` – Whether to keep the connection open when the page is hidden. Use…"
+   },
+   {
+    "what": "The inspect output mentions a '--save' flag, but I did not run 'docli inspect --help' to confirm it exists, so this is unverified.",
+    "severity": "friction",
+    "command": "docli inspect https://data-star.dev/reference/attributes",
+    "output": "nothing written; --save keeps these rules, `docli add` writes the docs"
+   },
+   {
+    "what": "Budget: 16 docli invocations against the 'about 15' limit, plus one cat of an INDEX.md that docli wrote. Most of the extra cost came from the search-miss and truncation problems above.",
+    "severity": "friction",
+    "command": "n/a",
+    "output": "n/a"
+   }
+  ],
+  "budget_kept": false,
+  "files": 61
+ },
+ {
+  "source": "datastar",
+  "model": "sonnet",
+  "answers": [
+   {
+    "question": "Default interval duration of data-on-interval",
+    "answer": "One second (1s). Modifier __duration.1s is the default; __duration.500ms etc. override it.",
+    "file_read": ".docli/attrs/data-on-interval.md",
+    "tokens_read": 179
+   },
+   {
+    "question": "Default of retryMaxCount for backend actions",
+    "answer": "10",
+    "file_read": ".docli/actions/backend-actions/Options.md",
+    "tokens_read": 715
+   },
+   {
+    "question": "Default of openWhenHidden for get requests",
+    "answer": "false for get requests (true for all other HTTP methods).",
+    "file_read": ".docli/actions/backend-actions/Options.md (also get.md)",
+    "tokens_read": 715
+   }
+  ],
+  "commands": [
+   "docli --help (ok)",
+   "docli add --help (ok)",
+   "docli add https://data-star.dev --name datastar (exit 0, but only the home page: 8 files, 2.0k tok)",
+   "docli add https://data-star.dev/llms.txt --name datastar-llms (exit 1: 404)",
+   "docli list (ok)",
+   "docli add https://data-star.dev/reference/attributes --name attrs (ok, 38 files 9.3k tok)",
+   "docli add https://data-star.dev/reference/actions --name actions (ok, 15 files 4.7k tok)",
+   "docli search interval --path .docli (ok)",
+   "docli search retryMaxCount (ok)",
+   "docli search openWhenHidden (ok)",
+   "docli show attrs/data-on-interval; show actions/backend-actions/Options; show actions/backend-actions/get | head -30 (ok)"
+  ],
+  "add_ok": true,
+  "files": 61,
+  "problems": [
+   {
+    "what": "Adding a site root URL fetches only that single page (the marketing home page), not the docs. No crawl or link following, and no hint that the real docs live on other URLs. I had to guess /reference/attributes and /reference/actions.",
+    "severity": "wrong",
+    "command": "docli add https://data-star.dev --name datastar",
+    "output": "✓ datastar v1 · 8 files · 2.0k tok → .docli/datastar / parsed as html / coverage ok: all 611 source words are in exactly one file"
+   },
+   {
+    "what": "No discovery of llms.txt or sitemap. The add help says it handles llms.txt but only if you give the exact URL; a 404 gives a bare error with no fallback suggestion.",
+    "severity": "friction",
+    "command": "docli add https://data-star.dev/llms.txt --name datastar-llms",
+    "output": "error: GET https://data-star.dev/llms.txt: 404 Not Found"
+   },
+   {
+    "what": "Search is not scoped by source and mixes the home-page copy with the reference docs. The first search returned an irrelevant home-page hit. The first command I ran passed a redundant --path .docli and worked fine.",
+    "severity": "friction",
+    "command": "docli search interval",
+    "output": "A solid core and a complete framework  section  datastar/build-reactive-web-apps-.../a-solid-core-and-a-complete-framework.md · 168 tok"
+   },
+   {
+    "what": "The search hit for 'interval' listed data-on-interval with no snippet, so it was unclear it contained the answer. Search for 'retryMaxCount' showed the 'retryInterval' line as a hit under 'interval'. Snippets are truncated with an ellipsis, e.g. the openWhenHidden default was cut off ('Use…'), so a show was still needed.",
+    "severity": "friction",
+    "command": "docli search openWhenHidden",
+    "output": "line 9: - `openWhenHidden` – Whether to keep the connection open when the page is hidden. Use…"
+   },
+   {
+    "what": "show prints the full YAML header and code blocks with line-number prefixes baked in ('1<div ...>'), which adds noise and tokens.",
+    "severity": "friction",
+    "command": "docli show attrs/data-on-interval",
+    "output": "```\n1<div data-on-interval=\"$count++\"></div>\n```"
+   },
+   {
+    "what": "The help does not say that docs sites need one add per page, and does not mention that source names become the first path segment for show.",
+    "severity": "friction"
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "telegram",
+  "model": "haiku",
+  "answers": [
+   {
+    "question": "1. Which parameters of the sendMessage method are required?",
+    "answer": "Only `text` is marked Required = Yes in the sendMessage parameter table (\"Text of the message to be sent, 1-4096 characters after entities parsing\"). `chat_id` is marked Optional in the table, but its description says it is \"required unless the message is sent as an ephemeral reply to a callback query\". The source is internally inconsistent here; docli copied it faithfully.",
+    "file_read": ".docli/telegram-bot-api/available-methods/sendMessage.md",
+    "tokens_read": 864
+   },
+   {
+    "question": "2. What is the allowed length of callback_data in an InlineKeyboardButton?",
+    "answer": "1-64 bytes (\"callback_data String *Optional*. Data to be sent in a callback query to the bot when the button is pressed, 1-64 bytes\").",
+    "file_read": ".docli/telegram-bot-api/available-types/InlineKeyboardButton.md",
+    "tokens_read": 1016
+   },
+   {
+    "question": "3. What is the default value of the timeout parameter of getUpdates?",
+    "answer": "0 (\"Timeout in seconds for long polling. Defaults to 0, i.e. usual short polling.\").",
+    "file_read": ".docli/telegram-bot-api/getting-updates/getUpdates.md",
+    "tokens_read": 480
+   }
+  ],
+  "commands": [
+   "docli --help (ok, no error)",
+   "docli add --help (ok)",
+   "docli search --help (ok)",
+   "docli show --help (ok)",
+   "docli tree --help (ok)",
+   "docli add https://core.telegram.org/bots/api --preset telegram-bot-api --name telegram-bot-api (ok: 648 files, 155k tok, coverage ok)",
+   "docli search sendMessage --source telegram-bot-api --limit 8 (ok)",
+   "docli search \"callback_data\" --source telegram-bot-api --limit 8 (ok)",
+   "docli search getUpdates --source telegram-bot-api --limit 8 (ok)",
+   "docli show sendMessage --source telegram-bot-api (ok)",
+   "docli show InlineKeyboardButton --source telegram-bot-api (ok)",
+   "docli show getUpdates --source telegram-bot-api (ok)"
+  ],
+  "add_ok": true,
+  "problems": [
+   {
+    "what": "InlineKeyboardButton page renders as flat text, not a table. The header and rows run together (\"Field Type Description\" then \"text String Label text on the button\"), so fields are hard to scan. sendMessage and getUpdates render as proper pipe tables. Looks like a conversion gap for definition-list HTML.",
+    "severity": "friction",
+    "command": "docli show InlineKeyboardButton --source telegram-bot-api",
+    "output": "Field Type Description \n\ntext String Label text on the button \n\nicon_custom_emoji_id String *Optional*. Unique identifier of the custom emoji..."
+   },
+   {
+    "what": "show prints the YAML front matter (---/title/kind/source/...) in human mode when stdout is piped. The help says --raw prints the file \"as stored, even in a terminal\", which implies the default differs in a terminal. Without a TTY I could not see a difference, so this is unverified.",
+    "severity": "friction",
+    "command": "docli show sendMessage --source telegram-bot-api",
+    "output": "---\ntitle: sendMessage\nkind: method\nsource: https://core.telegram.org/bots/api#sendmessage\n..."
+   },
+   {
+    "what": "Source-content inconsistency, not a docli bug: sendMessage marks chat_id as Optional while its description says it is required unless the message is an ephemeral reply. docli preserved it correctly, but an agent may misread the required set.",
+    "severity": "friction",
+    "command": "docli show sendMessage --source telegram-bot-api",
+    "output": "|chat_id|Integer or String|Optional|Unique identifier for the target chat ... required unless the message is sent as an ephemeral reply to a callback query|"
+   },
+   {
+    "what": "The search for \"callback_data\" ranked a 4.5k-token guide (Rich Message Formatting Options) among the hits. The hit list shows token sizes, so I could skip it, but it is a large hit for a small question.",
+    "severity": "friction",
+    "command": "docli search \"callback_data\" --source telegram-bot-api --limit 8",
+    "output": "Rich Message Formatting Options  guide  telegram-bot-api/rich-messages/rich-message-formatting-options.md · 4.5k tok"
+   },
+   {
+    "what": "The add --help text lists --preset telegram-bot-api, but there is no command to list available presets. Agents must guess preset names from help text.",
+    "severity": "friction",
+    "command": "docli add --help",
+    "output": "--preset string   use a built-in preset's rules (telegram-bot-api)"
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "telegram",
+  "model": "sonnet",
+  "answers": [
+   {
+    "question": "Which parameters of sendMessage are required?",
+    "answer": "Only `text` is marked Required: Yes (String, 1-4096 characters after entities parsing). `chat_id` is marked 'Optional' in the table, but its description says 'required unless the message is sent as an ephemeral reply to a callback query'. In practice chat_id and text are needed, and chat_id is conditionally required.",
+    "file_read": "telegram/available-methods/sendMessage.md",
+    "tokens_read": 864
+   },
+   {
+    "question": "What is the allowed length of callback_data in an InlineKeyboardButton?",
+    "answer": "1-64 bytes",
+    "file_read": "telegram/available-types/InlineKeyboardButton.md (grepped for callback_data; the file is 1.0k tok)",
+    "tokens_read": 1000
+   },
+   {
+    "question": "What is the default value of the timeout parameter of getUpdates?",
+    "answer": "0, meaning usual short polling. The docs say 'Defaults to 0, i.e. usual short polling.'",
+    "file_read": "telegram/getting-updates/getUpdates.md (grepped for timeout; the file is 480 tok)",
+    "tokens_read": 480
+   }
+  ],
+  "commands": [
+   "docli --help (exit 0)",
+   "docli add --help (exit 0)",
+   "docli add https://core.telegram.org/bots/api --name telegram (exit 0; 648 files, 155k tok, coverage ok)",
+   "docli search --help; docli search sendMessage (exit 0)",
+   "docli show telegram/available-methods/sendMessage.md (exit 0)",
+   "docli search InlineKeyboardButton --limit 4 (exit 0)",
+   "docli search getUpdates --limit 4 (exit 0)",
+   "docli show telegram/available-types/InlineKeyboardButton.md | grep -i callback_data (exit 0)",
+   "docli show telegram/getting-updates/getUpdates.md | grep -i timeout (exit 0)"
+  ],
+  "add_ok": true,
+  "problems": [
+   {
+    "what": "The Required column in the sendMessage table marks chat_id as 'Optional', and the real requirement is only in the description text. An agent that reads only the Required column would answer 'text' alone. This is upstream Telegram data, but a docli note would help.",
+    "severity": "friction",
+    "command": "docli show telegram/available-methods/sendMessage.md",
+    "output": "|chat_id|Integer or String|Optional|Unique identifier for the target chat ... ; required unless the message is sent as an ephemeral reply to a callback query|"
+   },
+   {
+    "what": "The parameter table for the type InlineKeyboardButton is rendered differently from the method tables. Rows have no pipes and the optional marker is written as '*Optional*'. The method tables are proper Markdown tables, so the output is inconsistent.",
+    "severity": "friction",
+    "command": "docli show telegram/available-types/InlineKeyboardButton.md | grep -i callback_data",
+    "output": "callback_data String *Optional*. Data to be sent in a [callback query](CallbackQuery.md) to the bot when the button is pressed, 1-64 bytes "
+   },
+   {
+    "what": "The search paths are printed with the source prefix (telegram/available-methods/sendMessage.md) and work in `show`. The 'Next:' hint after `add` says `docli show <name>` while the search output shows file paths. The hint does not say that `show` accepts file paths, and I did not check that `show --help` documents this.",
+    "severity": "friction"
+   },
+   {
+    "what": "Search for a method name returns many changelog entries after the method hits, along with unrelated ones such as sendChatAction (substring match). The method hit is first, so this is only noise.",
+    "severity": "friction",
+    "command": "docli search sendMessage"
+   }
+  ],
+  "budget_kept": true,
+  "files": 648
+ }
+]
