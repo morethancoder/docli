@@ -32,7 +32,7 @@ syncs only what changed, keeps versions, and checks for updates.
 
 Agents: pass --json for a fixed output format (see docs/json.md), read
 .docli/<source>/INDEX.md first, then open one file.`,
-		Version:       Version,
+		Version:       buildInfo().Version,
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
@@ -47,6 +47,7 @@ Agents: pass --json for a fixed output format (see docs/json.md), read
 	root.AddCommand(
 		cmdAdd(a), cmdInspect(a), cmdSync(a), cmdList(a), cmdTree(a), cmdShow(a),
 		cmdSearch(a), cmdDiff(a), cmdChangelog(a), cmdBrowse(a), cmdCheck(a), cmdRemove(a), cmdSkill(a),
+		cmdVersion(a), cmdUpdate(a),
 	)
 	return root
 }
@@ -135,7 +136,7 @@ func (r *ruleFlags) bind(cmd *cobra.Command) {
 	f.StringVar(&r.preset, "preset", "", "use a built-in preset's rules ("+strings.Join(config.PresetNames(), ", ")+")")
 	f.StringVar(&r.selector, "selector", "", "CSS selector of the content region (HTML)")
 	f.StringSliceVar(&r.drop, "drop", nil, "CSS selectors to remove before parsing (repeatable)")
-	f.StringVar(&r.render, "render", "", "auto, static or browser (browser runs JavaScript)")
+	f.StringVar(&r.render, "render", "", "auto (static, then headless browser if the page looks empty), static, or browser (runs JavaScript)")
 	f.StringVar(&r.format, "format", "", "auto, html or markdown")
 	f.StringVar(&r.base, "base", "", "real address of a saved page, so its links resolve to the site")
 	f.IntVar(&r.fileLevel, "file-level", 0, "heading level that becomes one file (0 = by size)")
@@ -231,12 +232,13 @@ func (a *app) resolve(cmd *cobra.Command, arg string, r *ruleFlags) (*config.Sou
 // AddData is the --json data of add and of each sync entry.
 type AddData struct {
 	*store.Result
-	Dir      string        `json:"dir"`
-	Parser   string        `json:"parser"`
-	Rendered bool          `json:"rendered"`
-	Note     string        `json:"note,omitempty"`
-	Coverage plan.Coverage `json:"coverage"`
-	Warnings []string      `json:"warnings"`
+	Dir         string              `json:"dir"`
+	Parser      string              `json:"parser"`
+	Rendered    bool                `json:"rendered"`
+	Note        string              `json:"note,omitempty"`
+	Coverage    plan.Coverage       `json:"coverage"`
+	Warnings    []string            `json:"warnings"`
+	Suggestions []engine.Suggestion `json:"suggestions,omitempty"` // where the docs may be, when the page looks like a landing page
 }
 
 func cmdAdd(a *app) *cobra.Command {
@@ -247,7 +249,11 @@ func cmdAdd(a *app) *cobra.Command {
 		Short: "Download a docs source and split it into indexed files",
 		Long: `Download a docs page (HTML, a JavaScript-built page, markdown or llms.txt),
 split it by headings into folders and files, and write it under .docli/<name>/.
-Rules are saved to .docli/<name>/source.yaml and reused by sync.`,
+Rules are saved to .docli/<name>/source.yaml and reused by sync.
+
+docli reads one page per source. Give it the page that holds the docs, not the
+site's home page: a whole-docs file (/llms-full.txt, /docs.md) is best. If the
+page looks like a landing page, add lists likely docs URLs (data.suggestions).`,
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			src, _, err := a.resolve(cmd, args[0], &r)
@@ -259,10 +265,20 @@ Rules are saved to .docli/<name>/source.yaml and reused by sync.`,
 				return err
 			}
 			d := addData(a, res, l)
+			d.Suggestions = engine.Suggest(context.Background(), l)
+			a.hint = suggestHint(a, d.Suggestions)
 			return a.emit(d, func(w io.Writer) {
-				fmt.Fprintf(w, "%s %s v%d · %d files · %s → %s\n", styled(a, okS, "✓"), styled(a, boldS, src.Name),
+				mark := styled(a, okS, "✓")
+				switch {
+				case !d.Coverage.OK:
+					mark = styled(a, warnS, "⚠ written with --force:")
+				case len(d.Suggestions) > 0:
+					mark = styled(a, warnS, "⚠ landing page only:")
+				}
+				fmt.Fprintf(w, "%s %s v%d · %d files · %s → %s\n", mark, styled(a, boldS, src.Name),
 					res.Version, res.Files, tok(res.Tokens), a.rel(d.Dir))
 				printLoadInfo(a, w, d)
+				printSuggestions(a, w, d.Suggestions)
 				fmt.Fprintf(w, "\nNext: read %s, or `docli show <name>`\n", a.rel(filepath.Join(d.Dir, "INDEX.md")))
 			})
 		},
@@ -279,6 +295,28 @@ func addData(a *app, res *store.Result, l *engine.Loaded) AddData {
 	}
 	return AddData{Result: res, Dir: a.store.Dir(res.Source), Parser: l.Result.Parser, Rendered: l.Result.Rendered,
 		Note: l.Result.Note, Coverage: l.Plan.Coverage, Warnings: w}
+}
+
+// suggestHint is the envelope hint for a page that looks like a landing page.
+func suggestHint(a *app, s []engine.Suggestion) string {
+	if len(s) == 0 {
+		return ""
+	}
+	where := "the list above"
+	if a.jsonOut {
+		where = "data.suggestions"
+	}
+	return fmt.Sprintf("this looks like a landing page, not the docs. Try `docli add %s` (more in %s); if the old source is not needed, `docli remove` it", s[0].URL, where)
+}
+
+func printSuggestions(a *app, w io.Writer, s []engine.Suggestion) {
+	if len(s) == 0 {
+		return
+	}
+	fmt.Fprintf(w, "  %s\n", styled(a, warnS, "few files: this may be a landing page. The docs may be at:"))
+	for _, x := range s {
+		fmt.Fprintf(w, "    %s  %s\n", x.URL, styled(a, dimS, x.Why))
+	}
 }
 
 func printLoadInfo(a *app, w io.Writer, d AddData) {
@@ -298,20 +336,21 @@ func printLoadInfo(a *app, w io.Writer, d AddData) {
 
 // InspectData is the --json data of inspect.
 type InspectData struct {
-	Source   *config.Source `json:"source"`
-	Saved    bool           `json:"saved"`
-	Parser   string         `json:"parser"`
-	Rendered bool           `json:"rendered"`
-	Note     string         `json:"note,omitempty"`
-	Title    string         `json:"title"`
-	Headings map[string]int `json:"headings"` // count per level: "h2": 14
-	Files    int            `json:"files"`
-	Folders  int            `json:"folders"`
-	Tokens   int            `json:"tokens"`
-	Largest  *PlanItem      `json:"largest,omitempty"`
-	Coverage plan.Coverage  `json:"coverage"`
-	Warnings []string       `json:"warnings"`
-	Tree     []*PlanNode    `json:"tree"`
+	Source      *config.Source      `json:"source"`
+	Saved       bool                `json:"saved"`
+	Parser      string              `json:"parser"`
+	Rendered    bool                `json:"rendered"`
+	Note        string              `json:"note,omitempty"`
+	Title       string              `json:"title"`
+	Headings    map[string]int      `json:"headings"` // count per level: "h2": 14
+	Files       int                 `json:"files"`
+	Folders     int                 `json:"folders"`
+	Tokens      int                 `json:"tokens"`
+	Largest     *PlanItem           `json:"largest,omitempty"`
+	Coverage    plan.Coverage       `json:"coverage"`
+	Warnings    []string            `json:"warnings"`
+	Suggestions []engine.Suggestion `json:"suggestions,omitempty"`
+	Tree        []*PlanNode         `json:"tree"`
 }
 
 // PlanItem is one planned file.
@@ -362,6 +401,16 @@ and sync reuse them.`,
 				saved = true
 			}
 			d := inspectData(src, saved, l, depth)
+			d.Suggestions = engine.Suggest(context.Background(), l)
+			if !d.Coverage.OK {
+				// A failing preview is an error, so scripts and agents see it in
+				// the exit code; the preview itself travels in the details.
+				if !a.jsonOut {
+					printInspect(a, a.out, d)
+				}
+				return &Error{Code: "coverage", Msg: (&engine.CoverageError{Coverage: d.Coverage}).Error(), Details: d}
+			}
+			a.hint = suggestHint(a, d.Suggestions)
 			return a.emit(d, func(w io.Writer) { printInspect(a, w, d) })
 		},
 	}
@@ -433,6 +482,7 @@ func printInspect(a *app, w io.Writer, d InspectData) {
 	for _, warn := range d.Warnings {
 		fmt.Fprintf(w, "%s %s\n", styled(a, warnS, "warning:"), warn)
 	}
+	printSuggestions(a, w, d.Suggestions)
 	fmt.Fprintln(w)
 	printTree(a, w, d.Source.Name+"/", d.Tree)
 	if d.Saved {
@@ -639,10 +689,17 @@ func buildTree(items []treeItem, prefix string, depth int) []*PlanNode {
 func cmdTree(a *app) *cobra.Command {
 	var depth int
 	cmd := &cobra.Command{
-		Use:   "tree [source] [folder]",
+		Use:   "tree [source] [folder] | tree <source>/<folder>",
 		Short: "Show the folders and files of a source",
 		Args:  cobra.MaximumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 1 && strings.Contains(args[0], "/") {
+				// tree telegram/available-methods, the same form show takes
+				args = strings.SplitN(args[0], "/", 2)
+				if strings.Trim(args[1], "/") == "" {
+					args = args[:1]
+				}
+			}
 			name := ""
 			if len(args) > 0 {
 				name = args[0]
@@ -741,13 +798,20 @@ func cmdShow(a *app) *cobra.Command {
 	var source string
 	var raw bool
 	cmd := &cobra.Command{
-		Use:   "show <name|path|folder>",
+		Use:   "show [source] <name|path|folder>",
 		Short: "Print one section (or a folder's INDEX)",
 		Long: `Print one stored file. The reference can be a section title (sendMessage),
 a path (available-methods/sendMessage), or a folder (available-methods), which
-prints that folder's INDEX.md.`,
-		Args: cobra.ExactArgs(1),
+prints that folder's INDEX.md. With two arguments the first names the
+source: ` + "`docli show datastar data-on`" + `.`,
+		Args: cobra.RangeArgs(1, 2),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 2 {
+				if source != "" && source != args[0] {
+					return errf("usage", "source given twice: %q and --source %q", args[0], source)
+				}
+				source, args = args[0], args[1:]
+			}
 			names, err := a.target(source)
 			if err != nil {
 				return err
@@ -832,6 +896,9 @@ func cmdSearch(a *app) *cobra.Command {
 			if ms == nil {
 				ms = []store.Match{}
 			}
+			if len(ms) == 0 {
+				a.hint = a.missHint(q, names)
+			}
 			return a.emit(ms, func(w io.Writer) {
 				if len(ms) == 0 {
 					fmt.Fprintf(w, "no matches for %q\n", q)
@@ -852,6 +919,19 @@ func cmdSearch(a *app) *cobra.Command {
 	return cmd
 }
 
+// missHint says where else a term may be when a search finds nothing: each
+// source is one page, so the term may be on a page that was never added.
+func (a *app) missHint(q string, names []string) string {
+	var pages []string
+	for _, n := range names {
+		if src, err := a.store.Config(n); err == nil {
+			pages = append(pages, n+" ("+src.URL+")")
+		}
+	}
+	return fmt.Sprintf("nothing here mentions %q. Only these pages are downloaded: %s. The term may be on another page of the site; add it with `docli add <url>`",
+		q, strings.Join(pages, ", "))
+}
+
 // ---- diff ----
 
 func cmdDiff(a *app) *cobra.Command {
@@ -862,6 +942,13 @@ func cmdDiff(a *app) *cobra.Command {
 		Short: "Show what changed since a version or a date (no git needed)",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 1 && strings.Contains(args[0], "/") {
+				// tree telegram/available-methods, the same form show takes
+				args = strings.SplitN(args[0], "/", 2)
+				if strings.Trim(args[1], "/") == "" {
+					args = args[:1]
+				}
+			}
 			name := ""
 			if len(args) > 0 {
 				name = args[0]
@@ -936,6 +1023,13 @@ func cmdChangelog(a *app) *cobra.Command {
 		Short: "Show the source's dated changelog (e.g. Telegram's Recent changes)",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) == 1 && strings.Contains(args[0], "/") {
+				// tree telegram/available-methods, the same form show takes
+				args = strings.SplitN(args[0], "/", 2)
+				if strings.Trim(args[1], "/") == "" {
+					args = args[:1]
+				}
+			}
 			name := ""
 			if len(args) > 0 {
 				name = args[0]

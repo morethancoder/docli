@@ -25,8 +25,10 @@ Never fetch or read a whole docs page into context; ask docli for one piece.
 
 1. ` + "`docli show <name> --json`" + ` returns one section, e.g. ` + "`docli show sendMessage`" + `.
    A path (` + "`available-methods/sendMessage`" + `) or a folder name (returns its INDEX) works too.
+   With several sources, name one first: ` + "`docli show <source> <name>`" + `.
    An ambiguous name fails with code ` + "`ambiguous`" + ` and lists the candidates in error.details.
 2. ` + "`docli search <words> --json`" + ` when you do not know the name: title matches first, then content.
+   No match? The reply's ` + "`hint`" + ` lists the pages downloaded; the term may be on a page not added yet.
 3. To browse, read ` + "`.docli/INDEX.md`" + `, then ` + "`.docli/<source>/INDEX.md`" + `: each line has the
    item's kind, token count and a one-line summary. Open only the file you need.
 4. ` + "`docli tree <source> --json`" + ` lists folders and files with token counts.
@@ -43,6 +45,9 @@ Links inside files are relative paths to other files, so follow them with Read.
 ## Add a source
 
 1. ` + "`docli inspect <url> --json`" + ` previews the split (files, largest file, coverage) and writes nothing.
+   If it returns ` + "`suggestions`" + `, the URL was a landing page: inspect a suggested URL instead
+   (a whole-docs file like ` + "`/docs.md`" + ` or ` + "`/llms-full.txt`" + ` is best). Pages built by JavaScript
+   need ` + "`--render browser`" + ` if auto does not pick it.
 2. If the split looks wrong, retry with ` + "`--selector`, `--drop`, `--file-level`, `--max-tokens`" + `
    and ` + "`--save`" + ` to keep the rules.
 3. ` + "`docli add <url> --json`" + `. A coverage failure (code ` + "`coverage`" + `) means text would be lost:

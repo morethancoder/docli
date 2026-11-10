@@ -34,11 +34,19 @@ Use this method to send text messages. On success, the sent [Message](../availab
 
 ## Install
 
+Download the archive for your system from the
+[latest release](https://github.com/morethancoder/docli/releases/latest) (macOS, Linux and
+Windows, amd64 and arm64), unpack it and put `docli` on your `PATH`. Then `docli update`
+keeps it current: it downloads the newest release, checks its SHA-256 against the release's
+`checksums.txt`, and replaces the binary. `docli update --check` only reports.
+
+With Go 1.27+:
+
 ```sh
 go install github.com/morethancoder/docli/cmd/docli@latest
 ```
 
-Or from a clone: `make build` writes `bin/docli`, and `make install` installs it. Needs Go 1.27+.
+Or from a clone: `make build` writes `bin/docli`, and `make install` installs it.
 Docs built by JavaScript also need Chrome or Chromium; set `DOCLI_CHROME` to its path if
 docli can't find it.
 
@@ -76,6 +84,8 @@ check [name...]     check for upstream changes now (never syncs)
 browse [source]     interactive terminal UI
 remove <name>       delete a source
 skill               write a Claude Code skill that teaches agents to use docli
+version             version, commit, build date and platform
+update              replace docli with the latest release (--check only reports)
 ```
 
 Global flags: `--json`, `--path <dir>` (default `./.docli`), `--latest`, `--no-check`.
@@ -136,6 +146,7 @@ make          # list targets
 make test     # all tests (SHORT=1 skips the headless-browser test)
 make lint     # gofmt check + go vet
 make doctor   # check Go and the optional browser
+make release VERSION=v0.2.0   # tag and push; GitHub Actions builds the release
 ```
 
 ## License

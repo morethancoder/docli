@@ -11,6 +11,7 @@ Every command run with `--json` prints one JSON object on stdout, and nothing el
   "command": "show",
   "data": { },
   "stale": [ ],
+  "hint": "...",
   "error": { "code": "not_found", "message": "...", "details": null }
 }
 ```
@@ -21,6 +22,7 @@ Every command run with `--json` prints one JSON object on stdout, and nothing el
 | `command` | the subcommand that ran. |
 | `data` | the result. Its shape depends on the command (below). Left out on error. |
 | `stale` | stale-check notes for the sources the command read. Always present, maybe `[]`. |
+| `hint` | a next step for the agent, when docli has one (e.g. a search found nothing: which pages are downloaded and how to add more). Left out otherwise. |
 | `error` | present only when `ok` is false. |
 
 ### Error codes
@@ -31,7 +33,7 @@ Every command run with `--json` prints one JSON object on stdout, and nothing el
 | `empty` | no sources in the docs folder yet |
 | `not_found` | no source, section or file matches the reference |
 | `ambiguous` | several sections match. `details` lists them (`source`, `path`, `title`) |
-| `coverage` | the split would lose or duplicate text, so nothing was written. `details` is the coverage object |
+| `coverage` | the split would lose or duplicate text, so nothing was written. For `add`, `details` is the coverage object; for `inspect`, it is the whole preview (`inspect` data below) |
 | `error` | anything else (network, parse, disk) |
 
 ### Stale notes
@@ -54,18 +56,25 @@ A check never changes the stored files. Only `sync`, `add` and `--latest` write.
 
 | command | `data` |
 |---|---|
-| `add` | `{source, version, changed, added[], changed_files[], removed[], files_written, files, tokens, dir, parser, rendered, note?, coverage, warnings[]}` |
+| `add` | `{source, version, changed, added[], changed_files[], removed[], files_written, files, tokens, dir, parser, rendered, note?, coverage, warnings[], suggestions?[]}` |
 | `sync` | a list of `add` objects, one per source |
-| `inspect` | `{source (rules), saved, parser, rendered, note?, title, headings{h2: n}, files, folders, tokens, largest?, coverage, warnings[], tree[]}` |
+| `inspect` | `{source (rules), saved, parser, rendered, note?, title, headings{h2: n}, files, folders, tokens, largest?, coverage, warnings[], tree[], suggestions?[]}` |
 | `list` | `[{name, title, url, dir, version, files, tokens, synced_at}]` |
 | `tree` | `[{name, path, title, kind, tokens, items?, children?[], more?}]`, folders first after `_overview.md` |
-| `show` | `{source, path, file, title, kind, tokens, bytes, version?, source_url, content}`. `content` is the whole file, YAML header included |
+| `show` (`[source] <ref>`) | `{source, path, file, title, kind, tokens, bytes, version?, source_url, content}`. `content` is the whole file, YAML header included |
 | `search` | `[{source, path, title, kind, tokens, match: "name"\|"content", line?, snippet?}]`, best first |
 | `diff` | `{source, since_version, current_version, versions[], files: [{path, title, status: added\|changed\|removed, diff}]}` |
 | `changelog` | `[{date: "YYYY-MM-DD", title, path, items[]}]`, newest first |
 | `check` | a list of stale notes, one per source checked |
 | `remove` | `{removed}` (the source name) |
 | `skill` | `{path}` |
+| `version` | `{version, commit, date, go, os, arch}` |
+| `update` | `{current, latest, newer, updated, path?, url?, check_only}` |
+
+`suggestions` is `[{url, why}]`. It appears only when an HTML page outside any docs path
+(`/docs`, `/guide`, `/components` …) split into 12 files or fewer, which usually means a landing
+page. It lists whole-docs files the site serves (`/llms-full.txt`, `/llms.txt`, `/docs.md`) and
+doc-like links on the page.
 
 `coverage` is `{source_words, output_words, missing, duplicated, examples?[], ok}`. It compares
 the words in the source text with the words written to files, and a split is accepted only when

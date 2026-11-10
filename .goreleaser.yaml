@@ -1,0 +1,36 @@
+# Release builds for docli. A pushed v* tag runs .github/workflows/release.yml,
+# which runs GoReleaser with this file. `docli update` expects these archive
+# names and checksums.txt, so keep them in step with internal/update.
+version: 2
+
+project_name: docli
+
+builds:
+  - main: ./cmd/docli
+    binary: docli
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w
+      - -X github.com/morethancoder/docli/internal/cli.Version={{.Tag}}
+      - -X github.com/morethancoder/docli/internal/cli.Commit={{.ShortCommit}}
+      - -X github.com/morethancoder/docli/internal/cli.Date={{.Date}}
+
+archives:
+  - name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files: [README.md]
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  use: github
+  sort: asc

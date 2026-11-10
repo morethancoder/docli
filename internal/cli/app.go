@@ -15,6 +15,7 @@ import (
 
 	"github.com/morethancoder/docli/internal/engine"
 	"github.com/morethancoder/docli/internal/store"
+	"github.com/morethancoder/docli/internal/update"
 )
 
 // Version is set at build time.
@@ -22,6 +23,7 @@ var Version = "dev"
 
 // app holds global flags and output state for one run.
 type app struct {
+	hint    string // set by a command before emit
 	jsonOut bool
 	path    string
 	latest  bool
@@ -33,6 +35,8 @@ type app struct {
 	command     string
 	checks      *checker
 	spawn       func(names []string) error // starts the background check; tests replace it
+	newUpdater  func() *update.Client      // tests point update at a fake release server
+	exePath     string                     // tests: the binary update replaces
 }
 
 // Envelope is the fixed --json shape of every command (see docs/json.md).
@@ -41,6 +45,7 @@ type Envelope struct {
 	Command string      `json:"command"`
 	Data    any         `json:"data,omitempty"`
 	Stale   []StaleNote `json:"stale"`
+	Hint    string      `json:"hint,omitempty"` // what to try next, when the answer may be incomplete
 	Error   *ErrorBody  `json:"error,omitempty"`
 }
 
@@ -110,10 +115,13 @@ func isTerminal(f *os.File) bool { return term.IsTerminal(f.Fd()) }
 func (a *app) emit(data any, human func(w io.Writer)) error {
 	notes := a.finishChecks()
 	if a.jsonOut {
-		return writeJSON(a.out, Envelope{OK: true, Command: a.command, Data: data, Stale: notes})
+		return writeJSON(a.out, Envelope{OK: true, Command: a.command, Data: data, Stale: notes, Hint: a.hint})
 	}
 	if human != nil {
 		human(a.out)
+	}
+	if a.hint != "" {
+		fmt.Fprintf(a.errOut, "%s %s\n", styled(a, dimS, "hint:"), a.hint)
 	}
 	a.printNotes(notes)
 	return nil

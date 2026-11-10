@@ -52,6 +52,9 @@ func newConverter() *converter.Converter {
 		table.NewTablePlugin(
 			table.WithCellPaddingBehavior(table.CellPaddingBehaviorNone),
 			table.WithSpanCellBehavior(table.SpanBehaviorMirror),
+			// A cell with a line break would otherwise make the plugin give up on
+			// the whole table and print it as loose text (Telegram types).
+			table.WithNewlineBehavior(table.NewlineBehaviorPreserve),
 		),
 	))
 }
@@ -69,6 +72,7 @@ func ContentRoot(raw *fetch.Raw, src *config.Source) (*goquery.Selection, *goque
 	for _, sel := range src.Drop {
 		doc.Find(sel).Remove()
 	}
+	dropLineNumbers(doc)
 	var root *goquery.Selection
 	if src.Selector != "" {
 		root = doc.Find(src.Selector).First()
@@ -109,6 +113,27 @@ func ContentRoot(raw *fetch.Raw, src *config.Source) (*goquery.Selection, *goque
 		}
 	})
 	return root, doc, nil
+}
+
+// lineNumberClasses mark line-number gutters in highlighted code: Chroma
+// (ln, lnt), Pygments (linenos, lineno) and common themes.
+var lineNumberClasses = ".ln, .lnt, .linenos, .lineno, .line-number, .line-numbers-rows, .hljs-ln-numbers"
+
+// dropLineNumbers removes line-number gutters from code blocks, so a copied
+// example reads "<div ...>", not "1<div ...>". Gutters are marked by a class
+// or are unselectable (user-select: none), which is how the page itself keeps
+// them out of a copy.
+func dropLineNumbers(doc *goquery.Document) {
+	doc.Find("pre").Each(func(_ int, pre *goquery.Selection) {
+		pre.Find(lineNumberClasses).Remove()
+		pre.Find("[style]").Each(func(_ int, s *goquery.Selection) {
+			st, _ := s.Attr("style")
+			st = strings.ReplaceAll(strings.ToLower(st), " ", "")
+			if strings.Contains(st, "user-select:none") {
+				s.Remove()
+			}
+		})
+	})
 }
 
 // densest narrows a page with no semantic content element (Telegram puts

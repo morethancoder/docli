@@ -2,7 +2,7 @@
 # lives in scripts/<verb>.sh. See the makefile-standards skill.
 
 .DEFAULT_GOAL := help
-.PHONY: help doctor build install test lint fmt clean
+.PHONY: help doctor build install test lint fmt clean release
 
 help: ## show this help
 	@awk 'BEGIN {FS = ":.*?## "; printf "\n\033[1mUsage:\033[0m make \033[36m<target>\033[0m\n\n\033[1mTargets:\033[0m\n"} \
@@ -29,3 +29,6 @@ fmt: ## format all Go files
 
 clean: ## remove build output and test caches
 	@bash scripts/clean.sh
+
+release: ## tag VERSION=vX.Y.Z and push it; GitHub builds the binaries
+	@bash scripts/release.sh

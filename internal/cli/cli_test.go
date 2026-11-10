@@ -3,16 +3,20 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/morethancoder/docli/internal/store"
+	"github.com/morethancoder/docli/internal/update"
+	"github.com/morethancoder/docli/internal/update/updatetest"
 )
 
 // docServer serves one markdown page whose text and delay tests can change.
@@ -255,5 +259,106 @@ func TestSkill(t *testing.T) {
 	}
 	if code, _, _ := e.envelope("skill", "--out", out, "--force"); code != 0 {
 		t.Error("--force should overwrite")
+	}
+}
+
+func TestVersion(t *testing.T) {
+	e := newEnv(t)
+	code, env, raw := e.envelope("version")
+	d := data(raw)
+	if code != 0 || !env.OK || d["version"] == "" || d["os"] == "" || d["go"] == "" {
+		t.Fatalf("version: %v", raw)
+	}
+}
+
+func TestUpdate(t *testing.T) {
+	f := &updatetest.FakeRelease{Tag: "v0.1.0", GOOS: runtime.GOOS, ARCH: runtime.GOARCH, Binary: []byte("NEW")}
+	srv := f.Server(t)
+	exe := filepath.Join(t.TempDir(), "docli")
+	_ = os.WriteFile(exe, []byte("OLD"), 0o755)
+	run := func(version string, args ...string) (int, Envelope, map[string]any) {
+		old := Version
+		Version = version
+		defer func() { Version = old }()
+		var out bytes.Buffer
+		a := &app{out: &out, errOut: &out, exePath: exe,
+			newUpdater: func() *update.Client {
+				return &update.Client{API: srv.URL, HTTP: srv.Client(), GOOS: runtime.GOOS, ARCH: runtime.GOARCH}
+			}}
+		code := execute(a, append(args, "--json", "--path", filepath.Join(t.TempDir(), ".docli")))
+		var env Envelope
+		var raw map[string]any
+		_ = json.Unmarshal(out.Bytes(), &env)
+		_ = json.Unmarshal(out.Bytes(), &raw)
+		return code, env, raw
+	}
+	read := func() string { b, _ := os.ReadFile(exe); return string(b) }
+
+	if code, _, raw := run("v0.0.9", "update", "--check"); code != 0 || data(raw)["newer"] != true || read() != "OLD" {
+		t.Fatalf("--check: %v", raw)
+	}
+	if code, env, _ := run("dev", "update"); code != 1 || env.Error == nil || env.Error.Code != "usage" || read() != "OLD" {
+		t.Fatalf("dev build must be refused without --force: %v", env.Error)
+	}
+	if code, _, raw := run("v0.1.0", "update"); code != 0 || data(raw)["updated"] != false || read() != "OLD" {
+		t.Fatalf("same version must not update: %v", raw)
+	}
+	if code, _, raw := run("v0.0.9", "update"); code != 0 || data(raw)["updated"] != true || read() != "NEW" {
+		t.Fatalf("update: %v, binary %q", raw, read())
+	}
+}
+
+func TestShowWithSourceArg(t *testing.T) {
+	e := newEnv(t)
+	e.add()
+	code, _, raw := e.envelope("show", "sdk", "createWidget")
+	if code != 0 || data(raw)["path"] != "api/createWidget.md" {
+		t.Fatalf("show sdk createWidget: %v", raw)
+	}
+	if code, env, _ := e.envelope("show", "nope", "createWidget"); code != 1 || env.Error.Code != "not_found" {
+		t.Errorf("unknown source: %v", env.Error)
+	}
+}
+
+func TestSearchMissHint(t *testing.T) {
+	e := newEnv(t)
+	e.add()
+	_, _, raw := e.envelope("search", "zzqx-not-there")
+	h, _ := raw["hint"].(string)
+	if !strings.Contains(h, "sdk (") || !strings.Contains(h, "docli add") {
+		t.Errorf("hint %q", h)
+	}
+	if _, _, raw := e.envelope("search", "createWidget"); raw["hint"] != nil {
+		t.Errorf("hint on a hit: %v", raw["hint"])
+	}
+}
+
+func TestInspectCoverageFailureExits1(t *testing.T) {
+	e := newEnv(t)
+	page := filepath.Join(t.TempDir(), "lossy.html")
+	_ = os.WriteFile(page, []byte(`<html><body><main><h1>T</h1><p>Intro text that is long enough to count as the content of this page.</p>
+<textarea>zebra quokka</textarea><h2>A</h2><p>more text</p></main></body></html>`), 0o644)
+	code, env, raw := e.envelope("inspect", page)
+	if code != 1 || env.Error == nil || env.Error.Code != "coverage" {
+		t.Fatalf("want coverage error, got code %d %v", code, raw)
+	}
+	det, _ := raw["error"].(map[string]any)["details"].(map[string]any)
+	if det["tree"] == nil || det["coverage"] == nil {
+		t.Errorf("preview missing from details: %v", det)
+	}
+	// add --force writes anyway and says so.
+	code, out, _ := e.run("add", page, "--force")
+	if code != 0 || !strings.Contains(out, "written with --force") {
+		t.Errorf("add --force: %d\n%s", code, out)
+	}
+}
+
+func TestTreeSourceSlashFolder(t *testing.T) {
+	e := newEnv(t)
+	e.add()
+	c1, _, a := e.envelope("tree", "sdk", "api")
+	c2, _, b := e.envelope("tree", "sdk/api")
+	if c1 != 0 || c2 != 0 || fmt.Sprint(a["data"]) != fmt.Sprint(b["data"]) {
+		t.Fatalf("tree sdk api (%d) and tree sdk/api (%d) differ:\n%v\n%v", c1, c2, a, b)
 	}
 }

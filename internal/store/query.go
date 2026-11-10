@@ -327,8 +327,9 @@ func snippet(line string, at, n int) string {
 	if i := strings.Index(lower, strings.ToLower(line[min(at, len(line)):min(at+n, len(line))])); i >= 0 {
 		at = i
 	}
-	start := max(0, at-50)
-	end := min(len(line), at+n+70)
+	// Wide enough to reach the value after a name ("timeout … 1 second").
+	start := max(0, at-80)
+	end := min(len(line), at+n+160)
 	for start > 0 && !utf8Start(line[start]) {
 		start--
 	}

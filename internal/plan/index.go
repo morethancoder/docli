@@ -144,10 +144,15 @@ var (
 	imageAlt   = regexp.MustCompile(`!\[[^\]]*\]\([^)]*\)`) // alt text is not page text
 	refDef     = regexp.MustCompile(`(?m)^\s*\[[^\]]+\]:\s*\S+.*$`)
 	olMarker   = regexp.MustCompile(`(?m)^\s*\d+[.)]\s`)
+	// A fence's info string ("```tsx") is not page text.
+	fenceLine = regexp.MustCompile("(?m)^[ \t]*(?:`{3,}|~{3,}).*$")
+	brTag     = regexp.MustCompile(`(?i)<br\s*/?>`) // line breaks kept inside table cells
 )
 
 func words(s string) map[string]int {
 	s = imageAlt.ReplaceAllString(s, " ")
+	s = fenceLine.ReplaceAllString(s, " ")
+	s = brTag.ReplaceAllString(s, " ")
 	s = linkTarget.ReplaceAllString(s, "]")
 	s = refDef.ReplaceAllString(s, "")
 	s = olMarker.ReplaceAllString(s, " ")
@@ -166,33 +171,77 @@ func checkCoverage(source string, covered []string) Coverage {
 	src := words(source)
 	out := words(strings.Join(covered, "\n"))
 	c := Coverage{}
-	type diff struct {
-		w string
-		n int
-	}
-	var miss, dup []diff
+	miss, dup := map[string]int{}, map[string]int{}
 	for w, n := range src {
 		c.SourceWords += n
 		if o := out[w]; o < n {
-			c.Missing += n - o
-			miss = append(miss, diff{w, n - o})
+			miss[w] = n - o
 		}
 	}
 	for w, n := range out {
 		c.OutputWords += n
 		if s := src[w]; n > s {
-			c.Duplicated += n - s
-			dup = append(dup, diff{w, n - s})
+			dup[w] = n - s
 		}
 	}
-	sort.Slice(miss, func(i, j int) bool { return miss[i].n > miss[j].n || (miss[i].n == miss[j].n && miss[i].w < miss[j].w) })
-	sort.Slice(dup, func(i, j int) bool { return dup[i].n > dup[j].n || (dup[i].n == dup[j].n && dup[i].w < dup[j].w) })
-	for i := 0; i < len(miss) && i < 8; i++ {
-		c.Examples = append(c.Examples, fmt.Sprintf("missing %q ×%d", miss[i].w, miss[i].n))
+	// Markdown can join or split words at a markup edge without losing text:
+	// "by<a>XTech</a>" is one word on the page but "by [XTech]" in markdown,
+	// and two link buttons "Get Started" "Preview" become "[…Started][Preview]".
+	settleJoins(miss, dup)
+	settleJoins(dup, miss)
+	type diff struct {
+		w string
+		n int
 	}
-	for i := 0; i < len(dup) && i < 8; i++ {
-		c.Examples = append(c.Examples, fmt.Sprintf("extra %q ×%d", dup[i].w, dup[i].n))
+	var missL, dupL []diff
+	for w, n := range miss {
+		c.Missing += n
+		missL = append(missL, diff{w, n})
+	}
+	for w, n := range dup {
+		c.Duplicated += n
+		dupL = append(dupL, diff{w, n})
+	}
+	sort.Slice(missL, func(i, j int) bool {
+		return missL[i].n > missL[j].n || (missL[i].n == missL[j].n && missL[i].w < missL[j].w)
+	})
+	sort.Slice(dupL, func(i, j int) bool { return dupL[i].n > dupL[j].n || (dupL[i].n == dupL[j].n && dupL[i].w < dupL[j].w) })
+	for i := 0; i < len(missL) && i < 8; i++ {
+		c.Examples = append(c.Examples, fmt.Sprintf("missing %q ×%d", missL[i].w, missL[i].n))
+	}
+	for i := 0; i < len(dupL) && i < 8; i++ {
+		c.Examples = append(c.Examples, fmt.Sprintf("extra %q ×%d", dupL[i].w, dupL[i].n))
 	}
 	c.OK = c.Missing == 0 && c.Duplicated == 0
 	return c
+}
+
+// settleJoins cancels a word in one side that is exactly two words of the
+// other side glued together ("byxtech" against "by" + "xtech").
+func settleJoins(joined, parts map[string]int) {
+	for w, n := range joined {
+		for i := 1; i < len(w) && n > 0; i++ {
+			a, b := w[:i], w[i:]
+			k := min(n, parts[a], parts[b])
+			if a == b {
+				k = min(n, parts[a]/2)
+			}
+			if k == 0 {
+				continue
+			}
+			n -= k
+			parts[a] -= k
+			parts[b] -= k
+			for _, x := range []string{a, b} {
+				if parts[x] == 0 {
+					delete(parts, x)
+				}
+			}
+		}
+		if n == 0 {
+			delete(joined, w)
+		} else {
+			joined[w] = n
+		}
+	}
 }

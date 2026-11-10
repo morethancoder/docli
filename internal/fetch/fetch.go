@@ -47,14 +47,7 @@ func Static(ctx context.Context, raw string) (*Raw, error) {
 		}
 		return &Raw{URL: raw, Body: b, ContentType: ct}, nil
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, raw, nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("User-Agent", userAgent)
-	req.Header.Set("Accept", "text/html,text/markdown,text/plain;q=0.9,*/*;q=0.5")
-	client := &http.Client{Timeout: 60 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := get(ctx, raw)
 	if err != nil {
 		return nil, err
 	}
@@ -70,6 +63,61 @@ func Static(ctx context.Context, raw string) (*Raw, error) {
 		return nil, fmt.Errorf("GET %s: body over %d MB", raw, MaxBody>>20)
 	}
 	return &Raw{URL: resp.Request.URL.String(), Body: b, ContentType: resp.Header.Get("Content-Type")}, nil
+}
+
+// RetryDelay is the wait before the one retry of a failed request.
+var RetryDelay = time.Second
+
+// get does a GET and retries once after a network error or a 5xx answer
+// (a TLS handshake timeout or a busy server is often gone a second later).
+func get(ctx context.Context, raw string) (*http.Response, error) {
+	client := &http.Client{Timeout: 60 * time.Second}
+	var resp *http.Response
+	var err error
+	for attempt := 0; attempt < 2; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-time.After(RetryDelay):
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		}
+		var req *http.Request
+		req, err = http.NewRequestWithContext(ctx, http.MethodGet, raw, nil)
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set("User-Agent", userAgent)
+		req.Header.Set("Accept", "text/html,text/markdown,text/plain;q=0.9,*/*;q=0.5")
+		resp, err = client.Do(req)
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if err == nil && resp.StatusCode < 500 {
+			return resp, nil
+		}
+		if err == nil && attempt == 0 {
+			resp.Body.Close()
+		}
+	}
+	return resp, err
+}
+
+// Probe reports whether url answers 200 with a text (non-HTML) body: used
+// to find llms.txt or a docs.md next to a landing page.
+func Probe(ctx context.Context, raw string) bool {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, raw, nil)
+	if err != nil {
+		return false
+	}
+	req.Header.Set("User-Agent", userAgent)
+	resp, err := (&http.Client{Timeout: 5 * time.Second}).Do(req)
+	if err != nil {
+		return false
+	}
+	defer resp.Body.Close()
+	ct := strings.ToLower(resp.Header.Get("Content-Type"))
+	return resp.StatusCode == http.StatusOK && !strings.Contains(ct, "html")
 }
 
 // ErrNoBrowser means no Chrome or Chromium was found.
