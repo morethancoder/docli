@@ -10,9 +10,9 @@ import (
 	"charm.land/bubbles/v2/list"
 	tea "charm.land/bubbletea/v2"
 
-	"docli/internal/config"
-	"docli/internal/engine"
-	"docli/internal/store"
+	"github.com/morethancoder/docli/internal/config"
+	"github.com/morethancoder/docli/internal/engine"
+	"github.com/morethancoder/docli/internal/store"
 )
 
 var ansi = regexp.MustCompile(`\x1b\[[0-9;:?]*[a-zA-Z]`)

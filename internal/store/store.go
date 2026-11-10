@@ -20,8 +20,8 @@ import (
 
 	"go.yaml.in/yaml/v3"
 
-	"docli/internal/config"
-	"docli/internal/plan"
+	"github.com/morethancoder/docli/internal/config"
+	"github.com/morethancoder/docli/internal/plan"
 )
 
 // DirName is the default store folder, created where docli runs.

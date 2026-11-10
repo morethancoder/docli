@@ -13,8 +13,8 @@ import (
 	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
-	"docli/internal/engine"
-	"docli/internal/store"
+	"github.com/morethancoder/docli/internal/engine"
+	"github.com/morethancoder/docli/internal/store"
 )
 
 // Version is set at build time.

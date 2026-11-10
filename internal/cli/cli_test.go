@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"docli/internal/store"
+	"github.com/morethancoder/docli/internal/store"
 )
 
 // docServer serves one markdown page whose text and delay tests can change.

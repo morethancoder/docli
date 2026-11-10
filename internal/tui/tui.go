@@ -14,7 +14,7 @@ import (
 	"charm.land/glamour/v2"
 	"charm.land/lipgloss/v2"
 
-	"docli/internal/store"
+	"github.com/morethancoder/docli/internal/store"
 )
 
 // Run starts the browser. start is a source name, or "" for all sources.

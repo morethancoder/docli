@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"docli/internal/config"
-	"docli/internal/parse"
+	"github.com/morethancoder/docli/internal/config"
+	"github.com/morethancoder/docli/internal/parse"
 )
 
 func load(t *testing.T, fixture string, src *config.Source) (*Plan, *config.Source) {

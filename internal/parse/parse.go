@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"strings"
 
-	"docli/internal/config"
-	"docli/internal/fetch"
-	"docli/internal/outline"
+	"github.com/morethancoder/docli/internal/config"
+	"github.com/morethancoder/docli/internal/fetch"
+	"github.com/morethancoder/docli/internal/outline"
 )
 
 // Parser turns one kind of source into an outline.

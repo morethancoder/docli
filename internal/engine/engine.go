@@ -9,11 +9,11 @@ import (
 	"strings"
 	"time"
 
-	"docli/internal/config"
-	"docli/internal/outline"
-	"docli/internal/parse"
-	"docli/internal/plan"
-	"docli/internal/store"
+	"github.com/morethancoder/docli/internal/config"
+	"github.com/morethancoder/docli/internal/outline"
+	"github.com/morethancoder/docli/internal/parse"
+	"github.com/morethancoder/docli/internal/plan"
+	"github.com/morethancoder/docli/internal/store"
 )
 
 // Loaded is a fetched, parsed and planned source.

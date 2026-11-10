@@ -25,7 +25,7 @@ type Raw struct {
 	Rendered    bool // true when loaded through the browser
 }
 
-const userAgent = "docli/0.1 (+docs indexer)"
+const userAgent = "github.com/morethancoder/docli/0.1 (+docs indexer)"
 
 // MaxBody caps a download so a wrong URL can't fill the disk.
 const MaxBody = 64 << 20

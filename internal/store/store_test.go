@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"docli/internal/config"
-	"docli/internal/parse"
-	"docli/internal/plan"
+	"github.com/morethancoder/docli/internal/config"
+	"github.com/morethancoder/docli/internal/parse"
+	"github.com/morethancoder/docli/internal/plan"
 )
 
 const v1 = `# Kit

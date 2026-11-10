@@ -14,9 +14,9 @@ import (
 	"github.com/PuerkitoBio/goquery"
 	"golang.org/x/net/html"
 
-	"docli/internal/config"
-	"docli/internal/fetch"
-	"docli/internal/outline"
+	"github.com/morethancoder/docli/internal/config"
+	"github.com/morethancoder/docli/internal/fetch"
+	"github.com/morethancoder/docli/internal/outline"
 )
 
 // HTML parses HTML pages: picks the content region, drops chrome, and turns

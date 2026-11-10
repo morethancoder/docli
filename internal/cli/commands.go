@@ -14,12 +14,12 @@ import (
 	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
 
-	"docli/internal/config"
-	"docli/internal/engine"
-	"docli/internal/outline"
-	"docli/internal/plan"
-	"docli/internal/store"
-	"docli/internal/tui"
+	"github.com/morethancoder/docli/internal/config"
+	"github.com/morethancoder/docli/internal/engine"
+	"github.com/morethancoder/docli/internal/outline"
+	"github.com/morethancoder/docli/internal/plan"
+	"github.com/morethancoder/docli/internal/store"
+	"github.com/morethancoder/docli/internal/tui"
 )
 
 func newRoot(a *app) *cobra.Command {

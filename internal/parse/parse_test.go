@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"docli/internal/config"
-	"docli/internal/fetch"
-	"docli/internal/outline"
+	"github.com/morethancoder/docli/internal/config"
+	"github.com/morethancoder/docli/internal/fetch"
+	"github.com/morethancoder/docli/internal/outline"
 )
 
 func fixture(t *testing.T, name string) string {

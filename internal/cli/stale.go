@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"docli/internal/engine"
-	"docli/internal/store"
+	"github.com/morethancoder/docli/internal/engine"
+	"github.com/morethancoder/docli/internal/store"
 )
 
 // Budget is how long a command waits for its stale check before handing the

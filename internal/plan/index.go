@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode"
 
-	"docli/internal/outline"
+	"github.com/morethancoder/docli/internal/outline"
 )
 
 // fillIndexes writes every INDEX.md body: one line per child with kind, token

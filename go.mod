@@ -1,4 +1,4 @@
-module docli
+module github.com/morethancoder/docli
 
 go 1.27.0
 

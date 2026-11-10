@@ -12,9 +12,9 @@ import (
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/text"
 
-	"docli/internal/config"
-	"docli/internal/fetch"
-	"docli/internal/outline"
+	"github.com/morethancoder/docli/internal/config"
+	"github.com/morethancoder/docli/internal/fetch"
+	"github.com/morethancoder/docli/internal/outline"
 )
 
 // Markdown parses markdown and llms.txt files. goldmark finds the real

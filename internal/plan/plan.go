@@ -12,8 +12,8 @@ import (
 	"sort"
 	"strings"
 
-	"docli/internal/config"
-	"docli/internal/outline"
+	"github.com/morethancoder/docli/internal/config"
+	"github.com/morethancoder/docli/internal/outline"
 )
 
 // File is one planned file.
