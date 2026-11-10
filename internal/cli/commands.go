@@ -266,19 +266,20 @@ page looks like a landing page, add lists likely docs URLs (data.suggestions).`,
 			}
 			d := addData(a, res, l)
 			d.Suggestions = engine.Suggest(context.Background(), l)
-			a.hint = suggestHint(a, d.Suggestions)
+			landing := engine.Thin(l)
+			a.hint = suggestHint(a, d.Suggestions, landing)
 			return a.emit(d, func(w io.Writer) {
 				mark := styled(a, okS, "✓")
 				switch {
 				case !d.Coverage.OK:
 					mark = styled(a, warnS, "⚠ written with --force:")
-				case len(d.Suggestions) > 0:
+				case len(d.Suggestions) > 0 && landing:
 					mark = styled(a, warnS, "⚠ landing page only:")
 				}
 				fmt.Fprintf(w, "%s %s v%d · %d files · %s → %s\n", mark, styled(a, boldS, src.Name),
 					res.Version, res.Files, tok(res.Tokens), a.rel(d.Dir))
 				printLoadInfo(a, w, d)
-				printSuggestions(a, w, d.Suggestions)
+				printSuggestions(a, w, d.Suggestions, landing)
 				fmt.Fprintf(w, "\nNext: read %s, or `docli show <name>`\n", a.rel(filepath.Join(d.Dir, "INDEX.md")))
 			})
 		},
@@ -297,8 +298,9 @@ func addData(a *app, res *store.Result, l *engine.Loaded) AddData {
 		Note: l.Result.Note, Coverage: l.Plan.Coverage, Warnings: w}
 }
 
-// suggestHint is the envelope hint for a page that looks like a landing page.
-func suggestHint(a *app, s []engine.Suggestion) string {
+// suggestHint is the envelope hint for a page that split into few files.
+// A short page under a docs path (an overview) gets a softer hint.
+func suggestHint(a *app, s []engine.Suggestion, landing bool) string {
 	if len(s) == 0 {
 		return ""
 	}
@@ -306,14 +308,21 @@ func suggestHint(a *app, s []engine.Suggestion) string {
 	if a.jsonOut {
 		where = "data.suggestions"
 	}
+	if !landing {
+		return fmt.Sprintf("few files: this page may be an overview. The whole docs are in one file: try `docli add %s` (more in %s)", s[0].URL, where)
+	}
 	return fmt.Sprintf("this looks like a landing page, not the docs. Try `docli add %s` (more in %s); if the old source is not needed, `docli remove` it", s[0].URL, where)
 }
 
-func printSuggestions(a *app, w io.Writer, s []engine.Suggestion) {
+func printSuggestions(a *app, w io.Writer, s []engine.Suggestion, landing bool) {
 	if len(s) == 0 {
 		return
 	}
-	fmt.Fprintf(w, "  %s\n", styled(a, warnS, "few files: this may be a landing page. The docs may be at:"))
+	head := "few files: this may be a landing page. The docs may be at:"
+	if !landing {
+		head = "few files: this may be an overview. The whole docs are also at:"
+	}
+	fmt.Fprintf(w, "  %s\n", styled(a, warnS, head))
 	for _, x := range s {
 		fmt.Fprintf(w, "    %s  %s\n", x.URL, styled(a, dimS, x.Why))
 	}
@@ -350,6 +359,7 @@ type InspectData struct {
 	Coverage    plan.Coverage       `json:"coverage"`
 	Warnings    []string            `json:"warnings"`
 	Suggestions []engine.Suggestion `json:"suggestions,omitempty"`
+	landing     bool                // the page looks like a landing page, not an overview
 	Tree        []*PlanNode         `json:"tree"`
 }
 
@@ -402,6 +412,7 @@ and sync reuse them.`,
 			}
 			d := inspectData(src, saved, l, depth)
 			d.Suggestions = engine.Suggest(context.Background(), l)
+			d.landing = engine.Thin(l)
 			if !d.Coverage.OK {
 				// A failing preview is an error, so scripts and agents see it in
 				// the exit code; the preview itself travels in the details.
@@ -410,7 +421,7 @@ and sync reuse them.`,
 				}
 				return &Error{Code: "coverage", Msg: (&engine.CoverageError{Coverage: d.Coverage}).Error(), Details: d}
 			}
-			a.hint = suggestHint(a, d.Suggestions)
+			a.hint = suggestHint(a, d.Suggestions, d.landing)
 			return a.emit(d, func(w io.Writer) { printInspect(a, w, d) })
 		},
 	}
@@ -482,7 +493,7 @@ func printInspect(a *app, w io.Writer, d InspectData) {
 	for _, warn := range d.Warnings {
 		fmt.Fprintf(w, "%s %s\n", styled(a, warnS, "warning:"), warn)
 	}
-	printSuggestions(a, w, d.Suggestions)
+	printSuggestions(a, w, d.Suggestions, d.landing)
 	fmt.Fprintln(w)
 	printTree(a, w, d.Source.Name+"/", d.Tree)
 	if d.Saved {

@@ -18,6 +18,7 @@ import (
 
 // Loaded is a fetched, parsed and planned source.
 type Loaded struct {
+	Asked       string // the URL as given, before redirects
 	Result      *parse.Result
 	Plan        *plan.Plan
 	Fingerprint string
@@ -35,7 +36,7 @@ func Prepare(ctx context.Context, src *config.Source) (*Loaded, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Loaded{Result: res, Plan: plan.Build(res.Doc, src), Fingerprint: Fingerprint(res.Doc)}, nil
+	return &Loaded{Asked: src.URL, Result: res, Plan: plan.Build(res.Doc, src), Fingerprint: Fingerprint(res.Doc)}, nil
 }
 
 // CoverageError is returned when the split lost or duplicated source text.

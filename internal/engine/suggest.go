@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"net/url"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -41,10 +42,22 @@ var wholeDocs = []struct{ path, why string }{
 // any docs path (/docs, /components …) that split into only a few files. A
 // short page under a docs path (one component) is real docs.
 func Thin(l *Loaded) bool {
-	if l.Result.Parser != "html" || strings.HasPrefix(l.Result.Raw.URL, "file:") {
+	if l.Result.Parser != "html" || !few(l) {
 		return false
 	}
-	if u, err := url.Parse(l.Result.Raw.URL); err == nil && docSegments[firstSegment(u.Path)] {
+	u, err := url.Parse(l.Result.Raw.URL)
+	return err != nil || !docSegments[firstSegment(u.Path)]
+}
+
+// few says a web page (HTML, or Markdown served at a page URL like
+// trpc.io/docs) split into only a few files. A text file such as llms.txt or
+// docs.md is the whole docs already.
+func few(l *Loaded) bool {
+	raw := l.Result.Raw.URL
+	if strings.HasPrefix(raw, "file:") || (l.Result.Parser != "html" && l.Result.Parser != "markdown") {
+		return false
+	}
+	if u, err := url.Parse(raw); err != nil || path.Ext(u.Path) != "" {
 		return false
 	}
 	n := 0
@@ -56,34 +69,59 @@ func Thin(l *Loaded) bool {
 	return n <= ThinFiles
 }
 
-// Suggest finds where the real docs may be when a page is thin: whole-docs
-// files at the site root (checked over the network, 5 s at most) and doc-like
-// links on the page itself, menus included.
+// Suggest finds where the real docs may be when a page split into few files.
+// For a landing page (Thin) that is whole-docs files at the site root and
+// doc-like links on the page, menus included. For the short root page of a
+// docs path (an overview like /docs or /guide) it is only whole-docs files, at
+// the site root and under that path (/docs/llms-full.txt): its menu links are
+// the docs already, and a docs root that redirects (resend.com/docs to
+// /docs/introduction) counts too. A deeper short page (one component) gets
+// nothing. Files are checked over the network, 5 s at most.
 func Suggest(ctx context.Context, l *Loaded) []Suggestion {
-	if !Thin(l) {
+	if !few(l) {
 		return nil
 	}
 	page, err := url.Parse(l.Result.Raw.URL)
 	if err != nil || page.Host == "" {
 		return nil
 	}
+	landing := Thin(l)
+	if !landing && deep(page.Path) {
+		if asked, err := url.Parse(l.Asked); err != nil || deep(asked.Path) {
+			return nil
+		}
+	}
+	base := page.Scheme + "://" + page.Host
+	// Files under the docs path are the more specific ones, so they go first.
+	var cands []Suggestion
+	if seg := firstSegment(page.Path); !landing && seg != "" {
+		for _, w := range wholeDocs[:2] { // llms-full.txt and llms.txt under the docs path
+			cands = append(cands, Suggestion{URL: base + "/" + seg + w.path, Why: w.why})
+		}
+	}
+	for _, w := range wholeDocs {
+		cands = append(cands, Suggestion{URL: base + w.path, Why: w.why})
+	}
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	found := make([]bool, len(wholeDocs))
+	found := make([]bool, len(cands))
 	var wg sync.WaitGroup
-	for i, w := range wholeDocs {
+	for i, c := range cands {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			found[i] = fetch.Probe(ctx, page.Scheme+"://"+page.Host+w.path)
+			found[i] = fetch.Probe(ctx, c.URL)
 		}()
 	}
 	wg.Wait()
 	var out []Suggestion
-	for i, w := range wholeDocs {
+	for i, c := range cands {
 		if found[i] {
-			out = append(out, Suggestion{URL: page.Scheme + "://" + page.Host + w.path, Why: w.why})
+			out = append(out, c)
 		}
+	}
+	if !landing {
+		return out
 	}
 	return append(out, DocLinks(l.Result.Raw.Body, page, 8)...)
 }
@@ -122,6 +160,9 @@ func DocLinks(body []byte, page *url.URL, max int) []Suggestion {
 	})
 	return out
 }
+
+// deep says a path is more than one segment long (/components/toast).
+func deep(p string) bool { return strings.Contains(strings.Trim(p, "/"), "/") }
 
 func firstSegment(p string) string {
 	return strings.ToLower(strings.SplitN(strings.TrimPrefix(p, "/"), "/", 2)[0])

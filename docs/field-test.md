@@ -179,6 +179,7 @@ and sync left the doc files unchanged (same checksum before and after).
 | 2 | Headings inside quotes and list items stay part of their block; heading titles keep code-span text and snake_case underscores. | `TestMarkdownHeadingTextAndQuotes` |
 | 3 | `sync` of a source whose text has not changed since the last sync passes without `--force`, and says "⚠ coverage check fails". Changed text still needs `--force`. | `TestInspectCoverageFailureExits1` |
 | 4 | Search line numbers count from the top of the stored file. | `TestFindAndSearch` |
+| 5 | A docs root that splits into few files (`trpc.io/docs`, or `resend.com/docs`, which redirects to `/docs/introduction`) names the whole-docs files next to it: `/docs/llms-full.txt` first, then the site root. It says "this may be an overview", not "landing page", and gives no page links. A deeper short page (one antd component) still gets nothing. | `TestSuggestWholeDocsForOverview` |
 
 After the fixes, all five real sources from round 3 pass coverage without `--force`:
 
@@ -199,8 +200,6 @@ changed files. It reported no blocker and no "wrong" problem.
 - **OpenAPI:** the petstore spec became one 5.8k-token file. Agents still answered 9/9 through
   search, but one operation cannot be read cheaply. An `openapi` parser (one file per operation)
   would be a new feature.
-- **An overview under `/docs` gets no suggestions.** `trpc.io/docs` gave 7 overview files and no hint
-  that `/llms-full.txt` exists, because landing-page detection skips docs paths.
 - Search shows one line per file and falls back to single words for a phrase. Sphinx `¶` links
   cost tokens. Python's class reference is one 11k-token section (members are `<dt>`, not headings).
   File names repeat a word (`httpbatchlink-options-options.md`) and mix case.

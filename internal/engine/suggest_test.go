@@ -20,6 +20,15 @@ const landing = `<!doctype html><html><head><title>Rocket</title></head><body>
 func site(t *testing.T) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/guide" { // a docs root that redirects, like resend.com/docs
+			http.Redirect(w, r, "/guide/intro", http.StatusPermanentRedirect)
+			return
+		}
+		if r.URL.Path == "/docs" || r.URL.Path == "/guide/intro" { // served as Markdown, like trpc.io/docs
+			w.Header().Set("Content-Type", "text/markdown")
+			fmt.Fprint(w, "# Docs\n\nAn overview of the library.\n\n## Install\n\nRun the installer.\n")
+			return
+		}
 		if r.URL.Path != "/" && !strings.HasPrefix(r.URL.Path, "/reference") {
 			http.NotFound(w, r)
 			return
@@ -30,6 +39,10 @@ func site(t *testing.T) *httptest.Server {
 			page = strings.Replace(landing, "<h1>Rocket</h1>", "<h1>Reference</h1>", 1)
 		}
 		fmt.Fprint(w, page)
+	})
+	mux.HandleFunc("/docs/llms-full.txt", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprint(w, "# All docs")
 	})
 	mux.HandleFunc("/docs.md", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
@@ -64,5 +77,26 @@ func TestSuggestOnLandingPage(t *testing.T) {
 	// A short page under a docs path is docs, not a landing page.
 	if s := Suggest(context.Background(), prep(t, srv.URL+"/reference/x")); len(s) != 0 {
 		t.Errorf("docs page got suggestions: %v", s)
+	}
+}
+
+// Round 3: trpc.io/docs is a short overview under a docs path. It is not a
+// landing page, but the whole docs file next to it is still worth naming.
+func TestSuggestWholeDocsForOverview(t *testing.T) {
+	srv := site(t)
+	l := prep(t, srv.URL+"/docs")
+	if Thin(l) {
+		t.Fatal("an overview under /docs counted as a landing page")
+	}
+	var urls []string
+	for _, x := range Suggest(context.Background(), l) {
+		urls = append(urls, strings.TrimPrefix(x.URL, srv.URL))
+	}
+	if got := strings.Join(urls, " "); got != "/docs/llms-full.txt /docs.md" {
+		t.Errorf("suggestions %q (want whole-docs files only, no page links)", got)
+	}
+	// A docs root that redirects one level down still counts as the root.
+	if s := Suggest(context.Background(), prep(t, srv.URL+"/guide")); len(s) == 0 || !strings.HasSuffix(s[0].URL, "/docs.md") {
+		t.Errorf("redirected docs root: %v", s)
 	}
 }
