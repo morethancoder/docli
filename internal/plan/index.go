@@ -143,7 +143,11 @@ var (
 	linkTarget = regexp.MustCompile(`\]\([^)]*\)`)
 	imageAlt   = regexp.MustCompile(`!\[[^\]]*\]\([^)]*\)`) // alt text is not page text
 	refDef     = regexp.MustCompile(`(?m)^\s*\[[^\]]+\]:\s*\S+.*$`)
-	olMarker   = regexp.MustCompile(`(?m)^\s*\d+[.)]\s`)
+	// A list or heading number ("1. ", "### 2. Add") may be renumbered or
+	// moved to a title, so it is not counted.
+	olMarker = regexp.MustCompile(`(?m)^\s*(?:#{1,6}\s+)?[*_]*\d+[.)]\s`)
+	// A markdown escape ("24\*60") is the plain character on the page.
+	mdEscape = regexp.MustCompile("\\\\([!-/:-@\\[-`{-~])")
 	// A fence's info string ("```tsx") is not page text.
 	fenceLine = regexp.MustCompile("(?m)^[ \t]*(?:`{3,}|~{3,}).*$")
 	brTag     = regexp.MustCompile(`(?i)<br\s*/?>`) // line breaks kept inside table cells
@@ -156,6 +160,7 @@ func words(s string) map[string]int {
 	s = linkTarget.ReplaceAllString(s, "]")
 	s = refDef.ReplaceAllString(s, "")
 	s = olMarker.ReplaceAllString(s, " ")
+	s = mdEscape.ReplaceAllString(s, "$1")
 	s = html.UnescapeString(s)
 	s = strings.NewReplacer("`", "", "*", "", "~", "").Replace(s)
 	m := map[string]int{}

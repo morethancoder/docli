@@ -60,6 +60,10 @@ func TestCoverageIgnoresMarkupEdges(t *testing.T) {
 		{"split at a link", "Made with love byXTech", "Made with love by[XTech](https://x.example)"},
 		{"joined links", "Get Started Preview", "[Get Started](/a)[Preview](/b)"},
 		{"br in a table cell", "May be empty. This offers", "|May be empty.<br />This offers|"},
+		// Round 3: a numbered heading's number is dropped from its file title.
+		{"numbered heading", "### 2. Add a query", "2. Add a query"},
+		{"bold numbered heading", "## **6. Verify**", "6. Verify"},
+		{"markdown escape", "one day is 24*60*60 seconds", "one day is 24\\*60\\*60 seconds"},
 	}
 	for _, c := range cases {
 		if cov := checkCoverage(c.source, []string{c.out}); !cov.OK {

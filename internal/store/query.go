@@ -259,6 +259,11 @@ func (s *Store) Search(query, source string, limit int) ([]Match, error) {
 			}
 			_, body, _ := SplitFile(data)
 			if c, ok := contentMatch(base, body, q, words); ok {
+				// Count lines from the top of the file, header included, so
+				// the number matches grep -n and sed -n on the stored file.
+				if head := strings.Index(string(data), body); head >= 0 {
+					c.Line += strings.Count(string(data[:head]), "\n")
+				}
 				out = append(out, c)
 			}
 		}

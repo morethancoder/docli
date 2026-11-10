@@ -62,7 +62,7 @@ A check never changes the stored files. Only `sync`, `add` and `--latest` write.
 | `list` | `[{name, title, url, dir, version, files, tokens, synced_at}]` |
 | `tree` | `[{name, path, title, kind, tokens, items?, children?[], more?}]`, folders first after `_overview.md` |
 | `show` (`[source] <ref>`) | `{source, path, file, title, kind, tokens, bytes, version?, source_url, content}`. `content` is the whole file, YAML header included |
-| `search` | `[{source, path, title, kind, tokens, match: "name"\|"content", line?, snippet?}]`, best first |
+| `search` | `[{source, path, title, kind, tokens, match: "name"\|"content", line?, snippet?}]`, best first; `line` counts from the top of the stored file, header included |
 | `diff` | `{source, since_version, current_version, versions[], files: [{path, title, status: added\|changed\|removed, diff}]}` |
 | `changelog` | `[{date: "YYYY-MM-DD", title, path, items[]}]`, newest first |
 | `check` | a list of stale notes, one per source checked |

@@ -209,6 +209,11 @@ func TestFindAndSearch(t *testing.T) {
 	for _, m := range ms {
 		if m.Path == "methods/open.md" && m.By == "content" && m.Line > 0 && strings.Contains(m.Snippet, "thing") {
 			content = true
+			// The line number counts from the top of the stored file (round 3).
+			data, _ := st.ReadFile(m.Source, m.Path)
+			if lines := strings.Split(string(data), "\n"); m.Line > len(lines) || !strings.Contains(strings.ToLower(lines[m.Line-1]), "thing") {
+				t.Errorf("line %d is not the hit in the stored file:\n%s", m.Line, data)
+			}
 		}
 	}
 	if !content {

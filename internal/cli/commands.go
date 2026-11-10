@@ -517,6 +517,7 @@ func cmdSync(a *app) *cobra.Command {
 				names = all
 			}
 			var out []AddData
+			var lossy []bool
 			for _, n := range names {
 				if !a.store.Has(n) {
 					return errf("not_found", "no source named %q", n)
@@ -530,15 +531,20 @@ func cmdSync(a *app) *cobra.Command {
 					return fmt.Errorf("%s: %w", n, err)
 				}
 				out = append(out, addData(a, res, l))
+				lossy = append(lossy, !l.Plan.Coverage.OK)
 			}
 			return a.emit(out, func(w io.Writer) {
-				for _, d := range out {
+				for i, d := range out {
+					mark := styled(a, okS, "✓")
+					if lossy[i] {
+						mark = styled(a, warnS, "⚠ coverage check fails:")
+					}
 					if !d.Changed {
-						fmt.Fprintf(w, "%s %s up to date (v%d, %d files)\n", styled(a, okS, "✓"), styled(a, boldS, d.Source), d.Version, d.Files)
+						fmt.Fprintf(w, "%s %s up to date (v%d, %d files)\n", mark, styled(a, boldS, d.Source), d.Version, d.Files)
 						continue
 					}
 					fmt.Fprintf(w, "%s %s v%d · %s added, %s changed, %s removed · %d files written\n",
-						styled(a, okS, "✓"), styled(a, boldS, d.Source), d.Version,
+						mark, styled(a, boldS, d.Source), d.Version,
 						styled(a, addS, fmt.Sprint(len(d.Added))), styled(a, warnS, fmt.Sprint(len(d.Modified))),
 						styled(a, delS, fmt.Sprint(len(d.Removed))), d.Written)
 					for _, p := range limitList(d.Added, 10) {

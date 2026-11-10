@@ -351,6 +351,17 @@ func TestInspectCoverageFailureExits1(t *testing.T) {
 	if code != 0 || !strings.Contains(out, "written with --force") {
 		t.Errorf("add --force: %d\n%s", code, out)
 	}
+	// Round 3: a plain sync of the unchanged forced source passes and warns.
+	code, out, _ = e.run("sync")
+	if code != 0 || !strings.Contains(out, "up to date") || !strings.Contains(out, "coverage check fails") {
+		t.Errorf("sync of unchanged forced source: %d\n%s", code, out)
+	}
+	// Once the page changes, sync asks for --force again.
+	_ = os.WriteFile(page, []byte(`<html><body><main><h1>T</h1><p>Intro text that is long enough to count as the content of this page.</p>
+<textarea>zebra quokka llama</textarea><h2>A</h2><p>more text</p></main></body></html>`), 0o644)
+	if code, out, _ = e.run("sync"); code == 0 {
+		t.Errorf("sync of changed lossy source passed:\n%s", out)
+	}
 }
 
 func TestTreeSourceSlashFolder(t *testing.T) {

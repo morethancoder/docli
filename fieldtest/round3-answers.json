@@ -1,0 +1,19 @@
+{
+  "_note": "Round 3 questions and expected answers, checked with curl against the live pages on 2026-11-10. Each answer is a list of regexes that must all match (case-insensitive).",
+  "trpc": {"name": "tRPC", "url": "https://trpc.io/docs", "kind": "Docusaurus site with a sidebar", "qs": [
+    ["What is the default value of the maxURLLength option of httpBatchLink?", ["infinity"]],
+    ["What is the default value of the maxItems option of httpBatchLink?", ["infinity"]],
+    ["Which npm package do you import httpBatchLink from?", ["@trpc/client"]]]},
+  "resend": {"name": "Resend", "url": "https://resend.com/docs", "kind": "Mintlify site", "qs": [
+    ["How long do idempotency keys last before they expire?", ["24\\s*h"]],
+    ["What is the maximum total size of attachments on one email?", ["40\\s*mb"]],
+    ["What is the maximum number of recipients in the `to` field of one email?", ["\\b50\\b"]]]},
+  "python": {"name": "Python datetime module", "url": "https://docs.python.org/3/library/datetime.html", "kind": "big static reference page", "qs": [
+    ["What is the value of datetime.MAXYEAR?", ["9999"]],
+    ["What does the %j format code mean in strftime?", ["day of (the )?year"]],
+    ["What range of values is allowed for the days of a timedelta?", ["999,?999,?999"]]]},
+  "openapi": {"name": "Swagger Petstore API (OpenAPI spec)", "url": "https://raw.githubusercontent.com/swagger-api/swagger-petstore/master/src/main/resources/openapi.yaml", "kind": "OpenAPI spec (no parser yet: scored separately)", "qs": [
+    ["Which HTTP method and path finds pets by status?", ["get", "/pet/findByStatus"]],
+    ["What values does the status parameter of that operation accept, and what is its default?", ["available", "pending", "sold"]],
+    ["What is the header name used by the api_key security scheme?", ["api_key"]]]}
+}

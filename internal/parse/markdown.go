@@ -61,6 +61,11 @@ func (Markdown) Parse(raw *fetch.Raw, src *config.Source) (*outline.Document, er
 		if !ok || !entering {
 			return ast.WalkContinue, nil
 		}
+		// A heading inside a quote or list item is part of that block, not a
+		// section of the page: splitting there would cut the block in two.
+		if h.Parent() == nil || h.Parent().Kind() != ast.KindDocument {
+			return ast.WalkSkipChildren, nil
+		}
 		lines := h.Lines()
 		if lines.Len() == 0 {
 			return ast.WalkSkipChildren, nil
@@ -68,7 +73,7 @@ func (Markdown) Parse(raw *fetch.Raw, src *config.Source) (*outline.Document, er
 		first, last := lines.At(0), lines.At(lines.Len()-1)
 		start := bytes.LastIndexByte(source[:first.Start], '\n') + 1
 		end := lineEnd(source, last.Stop)
-		if source[start] != '#' { // setext: the underline is the next line
+		if !bytes.Contains(source[start:first.Start], []byte("#")) { // setext: the underline is the next line
 			end = lineEnd(source, end)
 		}
 		hs = append(hs, mdHeading{
@@ -116,16 +121,43 @@ func lineEnd(b []byte, from int) int {
 
 var (
 	mdLink         = regexp.MustCompile(`!?\[([^\]]*)\]\([^)]*\)`)
-	mdEmphasis     = regexp.MustCompile("[*_`]+")
+	mdCodeSpan     = regexp.MustCompile("(`+)(.+?)(`+)")
 	trailingHashes = regexp.MustCompile(`\s+#+\s*$`)
 )
 
-// plainInline strips inline markdown from heading text.
+// plainInline strips inline markdown from heading text. Code spans keep their
+// text as written ("restricted_api_key"), and an underscore inside a word is
+// part of the word, not emphasis.
 func plainInline(s string) string {
 	s = trailingHashes.ReplaceAllString(s, "")
 	s = mdLink.ReplaceAllString(s, "$1")
-	s = mdEmphasis.ReplaceAllString(s, "")
+	var code []string
+	s = mdCodeSpan.ReplaceAllStringFunc(s, func(m string) string {
+		code = append(code, strings.TrimSpace(strings.Trim(m, "`")))
+		return "\x00" + strconv.Itoa(len(code)-1) + "\x00"
+	})
+	s = stripEmphasis(s)
+	for i, c := range code {
+		s = strings.Replace(s, "\x00"+strconv.Itoa(i)+"\x00", c, 1)
+	}
 	return strings.Join(strings.Fields(s), " ")
+}
+
+// stripEmphasis drops * and _ markers, keeping an underscore that joins two
+// letters or digits (snake_case).
+func stripEmphasis(s string) string {
+	r := []rune(s)
+	var b strings.Builder
+	alnum := func(i int) bool {
+		return i >= 0 && i < len(r) && (unicode.IsLetter(r[i]) || unicode.IsDigit(r[i]))
+	}
+	for i, c := range r {
+		if c == '*' || (c == '_' && !(alnum(i-1) && alnum(i+1))) {
+			continue
+		}
+		b.WriteRune(c)
+	}
+	return b.String()
 }
 
 // githubAnchor makes the anchor GitHub would give a heading.

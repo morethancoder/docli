@@ -48,13 +48,15 @@ func (e *CoverageError) Error() string {
 }
 
 // Sync loads a source and writes what changed. force writes even when the
-// coverage check fails.
+// coverage check fails. A source whose text has not changed since the last
+// sync passes without force: that split was already accepted, and a routine
+// sync must not fail on it.
 func Sync(ctx context.Context, st *store.Store, src *config.Source, force bool) (*store.Result, *Loaded, error) {
 	l, err := Prepare(ctx, src)
 	if err != nil {
 		return nil, nil, err
 	}
-	if !l.Plan.Coverage.OK && !force {
+	if !l.Plan.Coverage.OK && !force && !unchanged(st, src.Name, l.Fingerprint) {
 		return nil, l, &CoverageError{Coverage: l.Plan.Coverage}
 	}
 	if err := st.SaveConfig(src); err != nil {
@@ -70,6 +72,14 @@ func Sync(ctx context.Context, st *store.Store, src *config.Source, force bool) 
 		return res, l, err
 	}
 	return res, l, nil
+}
+
+func unchanged(st *store.Store, name, fp string) bool {
+	if !st.Has(name) {
+		return false
+	}
+	m, err := st.Manifest(name)
+	return err == nil && m.Fingerprint != "" && m.Fingerprint == fp
 }
 
 // Check fetches a source and compares it with the last sync. It saves and

@@ -1,0 +1,1104 @@
+[
+ {
+  "source": "trpc",
+  "model": "haiku",
+  "run": 1,
+  "add_ok": true,
+  "check_ok": true,
+  "check_output": "Ran `docli check trpc trpc-links`: \"\u2713 trpc: up to date (checked just now)\" and \"\u2713 trpc-links: up to date (checked just now)\", exit 0. `docli check --json` returned status \"fresh\" for both, \"stale\": []. Note: both checks ran seconds after the add, so they confirm nothing about upstream changes beyond that.",
+  "sync_ok": true,
+  "sync_output": "Ran `docli sync trpc trpc-links`: \"\u2713 trpc up to date (v1, 7 files)\" and \"\u2713 trpc-links up to date (v1, 6 files)\", exit 0. Nothing was rewritten.",
+  "sync_changed_files": false,
+  "commands": [
+   "docli --help (exit 0)",
+   "docli add --help (exit 0)",
+   "docli search --help (exit 0)",
+   "docli add https://trpc.io/docs --name trpc (exit 0, 7 files, 2.1k tok, coverage ok)",
+   "docli tree trpc (exit 0)",
+   "docli search httpBatchLink --source trpc (exit 0, no matches, hint to add the page)",
+   "docli add https://trpc.io/docs/client/links/httpBatchLink --name trpc-links (exit 0, 6 files, 1.6k tok, coverage ok)",
+   "docli search maxURLLength --source trpc-links (exit 0)",
+   "docli search maxItems --source trpc-links (exit 0)",
+   "docli tree trpc-links (exit 0)",
+   "docli show trpc-links/httpbatchlink-options-options.md (exit 0)",
+   "docli search \"import { httpBatchLink\" --source trpc-links (exit 0, noisy)",
+   "docli show trpc-links/Usage.md (exit 0)",
+   "docli check --help (exit 0)",
+   "docli sync --help (exit 0)",
+   "pre-update checksum (md5 of .docli doc files) = 5567a9e27735522273c513736cebf46d",
+   "docli check trpc trpc-links (exit 0, up to date)",
+   "docli sync trpc trpc-links (exit 0, up to date)",
+   "post-update checksum = 5567a9e27735522273c513736cebf46d",
+   "docli check --json (exit 0, both fresh)"
+  ],
+  "answers": [
+   {
+    "question": "1. What is the default value of the maxURLLength option of httpBatchLink?",
+    "answer": "Infinity. The doc comment in the options section reads: \"Maximum length of HTTP URL allowed before operations are split into multiple requests @default Infinity\". Source: .docli/trpc-links/httpbatchlink-options-options.md. The 'Setting a maximum URL length' page does not state a different default.",
+    "file_read": "<field>/r3/trpc-haiku-1/.docli/trpc-links/httpbatchlink-options-options.md",
+    "tokens_read": 361
+   },
+   {
+    "question": "2. What is the default value of the maxItems option of httpBatchLink?",
+    "answer": "Infinity. The doc comment reads: \"Maximum number of operations allowed in a single batch request @default Infinity\". Source: .docli/trpc-links/httpbatchlink-options-options.md.",
+    "file_read": "<field>/r3/trpc-haiku-1/.docli/trpc-links/httpbatchlink-options-options.md",
+    "tokens_read": 361
+   },
+   {
+    "question": "3. Which npm package do you import httpBatchLink from?",
+    "answer": "@trpc/client. The usage example reads: import { createTRPCClient, httpBatchLink } from '@trpc/client'; (also in the 'Setting a maximum URL length' page). Source: .docli/trpc-links/Usage.md.",
+    "file_read": "<field>/r3/trpc-haiku-1/.docli/trpc-links/Usage.md",
+    "tokens_read": 303
+   }
+  ],
+  "problems": [
+   {
+    "what": "Starting URL https://trpc.io/docs downloads only overview pages. httpBatchLink is not in the 'trpc' source, and it had to be found with a second add of /docs/client/links/httpBatchLink. Search gave a useful hint, but the first add reports success with no warning that the reference is missing.",
+    "severity": "friction",
+    "command": "docli add https://trpc.io/docs --name trpc",
+    "output": "\u2713 trpc v1 \u00b7 7 files \u00b7 2.1k tok \u2192 .docli/trpc\n  coverage ok: all 1242 source words are in exactly one file"
+   },
+   {
+    "what": "docli search matches individual words, not the exact phrase, so an exact-looking query returns unrelated hits. Searching for the phrase 'import { httpBatchLink' returned lines about 'import { createHTTPServer }' from other pages.",
+    "severity": "friction",
+    "command": "docli search \"import { httpBatchLink\" --source trpc-links",
+    "output": "Disabling request batching ... line 4: import { createHTTPServer } from '@trpc/server/adapters/standalone';"
+   },
+   {
+    "what": "Search on the first source returned a useful hint when nothing matched, which saved a step. Good behaviour, recorded for completeness.",
+    "severity": "friction",
+    "command": "docli search httpBatchLink --source trpc",
+    "output": "no matches for \"httpBatchLink\"\nhint: nothing here mentions \"httpBatchLink\". Only these pages are downloaded: trpc (https://trpc.io/docs). The term may be on another page of the site; add it with `docli add <url>`"
+   },
+   {
+    "what": "The file name for the options section is awkward: it repeats 'options' from the anchor, giving httpbatchlink-options-options.md. Some other files keep capitals (Usage.md, Community.md), so names are inconsistent.",
+    "severity": "friction",
+    "command": "docli tree trpc-links",
+    "output": "\u251c\u2500\u2500 httpbatchlink-options-options.md  section \u00b7 361 tok\n\u251c\u2500\u2500 Usage.md  section \u00b7 303 tok"
+   },
+   {
+    "what": "Right after the add, check and sync both report 'up to date' with no changed files. The result is consistent, but I cannot tell from the output whether the check actually contacted upstream, and the update step was a no-op. Verification of freshness was therefore weak.",
+    "severity": "friction",
+    "command": "docli check trpc trpc-links",
+    "output": "\u2713 trpc: up to date (checked just now)\n\u2713 trpc-links: up to date (checked just now)"
+   },
+   {
+    "what": "No problems with --help: the add, search, check and sync help text was clear enough to use without reading source. The --json envelope for check was clean, with ok, command, data, and stale fields.",
+    "severity": "friction",
+    "command": "docli check --json",
+    "output": "{\"ok\": true, \"command\": \"check\", \"data\": [...], \"stale\": []}"
+   }
+  ],
+  "budget_kept": true,
+  "files": 13
+ },
+ {
+  "source": "trpc",
+  "model": "haiku",
+  "run": 2,
+  "answers": [
+   {
+    "question": "1. What is the default value of the maxURLLength option of httpBatchLink?",
+    "answer": "Infinity. The docs (httpBatchLink Options section) define maxURLLength?: number with the comment '@default Infinity'.",
+    "file_read": ".docli/trpc-links/httpbatchlink-options-options.md",
+    "tokens_read": 361
+   },
+   {
+    "question": "2. What is the default value of the maxItems option of httpBatchLink?",
+    "answer": "Infinity. Same section: maxItems?: number with '@default Infinity'.",
+    "file_read": ".docli/trpc-links/httpbatchlink-options-options.md",
+    "tokens_read": 361
+   },
+   {
+    "question": "3. Which npm package do you import httpBatchLink from?",
+    "answer": "@trpc/client. The docs example is: import { createTRPCClient, httpBatchLink } from '@trpc/client';",
+    "file_read": ".docli/trpc-links/limiting-batch-size.md",
+    "tokens_read": 333
+   }
+  ],
+  "commands": [
+   "docli --help (ok)",
+   "docli add --help (ok)",
+   "docli search --help (ok)",
+   "docli add https://trpc.io/docs --name trpc (ok, 7 files, 2.1k tok, coverage ok)",
+   "docli tree trpc (ok)",
+   "docli search httpBatchLink (ok, no matches, hint to add another URL)",
+   "docli add https://trpc.io/llms-full.txt --name trpc-full (exit 1, coverage check failed: 38 of 74358 words missing)",
+   "docli inspect https://trpc.io/llms-full.txt --name trpc-full (ok, plan 431 files, coverage FAILED again)",
+   "docli add https://trpc.io/docs/client/links/httpBatchLink --name trpc-links (ok, 6 files, coverage ok)",
+   "docli tree trpc-links (ok)",
+   "docli search maxURLLength --source trpc-links (ok)",
+   "docli show trpc-links/httpbatchlink-options-options.md (ok)",
+   "docli show trpc-links/limiting-batch-size.md (ok)",
+   "docli check (ok: both up to date, checked just now)",
+   "docli sync (ok: both up to date)"
+  ],
+  "add_ok": true,
+  "check_ok": true,
+  "check_output": "\u2713 trpc: up to date (checked just now)\n\u2713 trpc-links: up to date (checked just now)",
+  "sync_ok": true,
+  "sync_output": "\u2713 trpc up to date (v1, 7 files)\n\u2713 trpc-links up to date (v1, 6 files)\nexit=0 (checksum before 5567a9e27735522273c513736cebf46d, after 5567a9e27735522273c513736cebf46d)",
+  "sync_changed_files": false,
+  "problems": [
+   {
+    "what": "The start page https://trpc.io/docs gave only an overview: 7 files, 2.1k tok, and 'httpBatchLink' is not in it. docli search then said: 'hint: nothing here mentions \"httpBatchLink\". Only these pages are downloaded... add it with docli add <url>'. The hint is useful, but docli gives no list of candidate URLs, so the agent has to guess the page path.",
+    "output": "no matches for \"httpBatchLink\"",
+    "severity": "friction"
+   },
+   {
+    "what": "Whole-docs file https://trpc.io/llms-full.txt fails the coverage check. The failure lists only digits, and nothing says where they are. The suggested fix ('adjust the selector or drop rules') gives no selector to try. I did not use --force.",
+    "output": "error: coverage check failed: 38 of 74358 source words missing, 0 duplicated (missing \"1\" \u00d77, missing \"2\" \u00d77, missing \"4\" \u00d77, missing \"3\" \u00d76, missing \"5\" \u00d76, missing \"6\" \u00d73, missing \"7\" \u00d72)",
+    "severity": "wrong"
+   },
+   {
+    "what": "docli inspect labels the source with a different name than the --name passed. The header says trpc-llms-full, but the rules line says name trpc-full.",
+    "output": "trpc-llms-full  https://trpc.io/llms-full.txt\n...\nrules: name trpc-full \u00b7",
+    "severity": "friction"
+   },
+   {
+    "what": "docli check and sync say 'up to date' right after add, so they cannot show that the docs match upstream now. The output shows '(checked just now)' with no real upstream comparison. The stale check was therefore not actually exercised, and the sync result does not prove freshness.",
+    "output": "\u2713 trpc: up to date (checked just now)",
+    "severity": "friction"
+   },
+   {
+    "what": "The help text for add says a whole-docs file is best, but the full file produced 431 files and 162k tok, and it failed coverage. Users need guidance on when a per-page URL should be used instead.",
+    "output": "plan: 431 files in 58 folders \u00b7 162k tok \u00b7 largest testimonials-love/from-twitter.md (3.6k tok)",
+    "severity": "friction"
+   }
+  ],
+  "budget_kept": true,
+  "files": 2
+ },
+ {
+  "source": "trpc",
+  "model": "sonnet",
+  "run": 1,
+  "answers": [
+   {
+    "question": "Default of maxURLLength in httpBatchLink",
+    "answer": "Infinity (JSDoc `@default Infinity` in HTTPBatchLinkOptions; also common-mistakes says both default to Infinity)",
+    "file_read": ".docli/trpc-full/http-batch-link/httpbatchlink-options-options.md",
+    "tokens_read": 361
+   },
+   {
+    "question": "Default of maxItems in httpBatchLink",
+    "answer": "Infinity (`@default Infinity`)",
+    "file_read": ".docli/trpc-full/http-batch-link/httpbatchlink-options-options.md",
+    "tokens_read": 0
+   },
+   {
+    "question": "npm package httpBatchLink is imported from",
+    "answer": "@trpc/client (import { httpBatchLink } from '@trpc/client')",
+    "file_read": "grep of .docli/trpc-full for import lines",
+    "tokens_read": 50
+   }
+  ],
+  "commands": [
+   "docli --help (0)",
+   "docli add --help; check --help; sync --help (0)",
+   "docli add https://trpc.io/docs --name trpc (0; only landing page, 7 files 2.1k tok)",
+   "docli tree trpc (0)",
+   "docli search maxURLLength (0; no matches)",
+   "docli add https://trpc.io/llms-full.txt --name trpc-full (nonzero, coverage failed)",
+   "docli add https://trpc.io/llms-full.txt --name trpc-full --format markdown (nonzero, coverage failed)",
+   "docli add https://trpc.io/llms-full.txt --name trpc-full --force (0, 431 files 162k tok)",
+   "docli search maxURLLength; docli search maxItems (0)",
+   "cat httpbatchlink-options-options.md; grep import lines (0)",
+   "md5 checksum before: 1089f4ea5d7ca2f9384091f49913820b",
+   "docli check (0: both up to date, checked just now)",
+   "docli list (0)",
+   "docli sync (nonzero: coverage check failed on trpc-full)",
+   "docli sync --force (0: both up to date)",
+   "md5 checksum after: 1089f4ea5d7ca2f9384091f49913820b"
+  ],
+  "add_ok": true,
+  "check_ok": true,
+  "check_output": "\u2713 trpc: up to date (checked just now) \u2713 trpc-full: up to date (checked just now)",
+  "sync_ok": false,
+  "sync_output": "Plain `docli sync` errored: 'error: trpc-full: coverage check failed: 38 of 74358 source words missing, 0 duplicated (missing \"1\" x7, ...)'. `docli sync --force` succeeded: 'trpc up to date (v1, 7 files)' / 'trpc-full up to date (v1, 431 files)'. Checksum before and after both 1089f4ea5d7ca2f9384091f49913820b.",
+  "sync_changed_files": false,
+  "files": 438,
+  "problems": [
+   {
+    "what": "`docli add https://trpc.io/docs` (the URL given) only captures a landing page (7 files, 2.1k tok), with no hint that it is a landing page. The success message says 'coverage ok'. The search hint did suggest adding another URL, but not which one. The help text says to use /llms-full.txt, which I had to guess.",
+    "severity": "friction",
+    "command": "docli add https://trpc.io/docs --name trpc",
+    "output": "\u2713 trpc v1 \u00b7 7 files \u00b7 2.1k tok ... coverage ok"
+   },
+   {
+    "what": "Coverage check fails on the markdown llms-full.txt for trivial reasons: only the standalone list numbers 1-7 are 'missing'. This blocks the best source unless --force is used. The error suggests inspect, selector or drop rules, none of which apply to markdown.",
+    "severity": "wrong",
+    "command": "docli add https://trpc.io/llms-full.txt --name trpc-full",
+    "output": "error: coverage check failed: 38 of 74358 source words missing, 0 duplicated (missing \"1\" \u00d77, missing \"2\" \u00d77, ...)"
+   },
+   {
+    "what": "Plain `docli sync` errors on the forced source even when nothing changed, because it re-runs the coverage check. It needs --force every time. The help does not say this, and a clean up-to-date source reports an error.",
+    "severity": "wrong",
+    "command": "docli sync",
+    "output": "error: trpc-full: coverage check failed: 38 of 74358 source words missing ..."
+   },
+   {
+    "what": "Two sources (trpc landing and trpc-full) overlap and are both checked and synced. Neither add output nor help warns about overlap. Also the source name auto-label for trpc-full shows as 'trpc-llms-full' in list.",
+    "severity": "friction"
+   },
+   {
+    "what": "Both the 'sync' check and the check command report up to date, so the stale step had nothing to update. The checksum did not change; this is consistent but means the update path was not exercised.",
+    "severity": "friction"
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "resend",
+  "model": "haiku",
+  "run": 1,
+  "answers": [
+   {
+    "question": "1. How long do idempotency keys last before they expire?",
+    "answer": "24 hours. The Idempotency-Key header section says: \"Idempotency keys expire after 24 hours\" (also: unique per API request, max 256 characters). Source: https://resend.com/docs/api-reference/emails/send-email#headers, downloaded as .docli/resend-api/headers.md.",
+    "file_read": ".docli/resend-api/headers.md",
+    "tokens_read": 1015
+   },
+   {
+    "question": "2. What is the maximum total size of attachments on one email?",
+    "answer": "40MB per email, measured after Base64 encoding of the attachments. Source line in the attachments parameter: \"Filename and content of attachments (max 40MB per email, after Base64 encoding of the attachments).\"",
+    "file_read": ".docli/resend-api/body-parameters.md",
+    "tokens_read": 700
+   },
+   {
+    "question": "3. What is the maximum number of recipients in the `to` field of one email?",
+    "answer": "50. The to parameter says: \"Recipient email address. For multiple addresses, send as an array of strings. Max 50.\"",
+    "file_read": ".docli/resend-api/body-parameters.md",
+    "tokens_read": 700
+   }
+  ],
+  "commands": [
+   "docli --help (ok)",
+   "docli add --help (ok)",
+   "docli add https://resend.com/docs --name resend (exit 1, coverage check failed: 12 of 187 words missing)",
+   "docli inspect --help (ok)",
+   "docli inspect https://resend.com/docs --name resend (coverage FAILED, 2 files, 571 tok)",
+   "docli inspect https://resend.com/docs --name resend --render browser (coverage ok, 20 files, 347 tok)",
+   "docli inspect https://resend.com/llms-full.txt --name resend (coverage ok, 19 files, 2.5k tok)",
+   "docli add https://resend.com/llms-full.txt --name resend (ok, 19 files)",
+   "docli search idempotency (1 hit, Skills.md only)",
+   "docli search attachment (no matches, hint given)",
+   "docli search recipients (no matches, hint given)",
+   "docli add https://resend.com/docs/api-reference/emails/send-email --name resend-api (exit 1, coverage check failed: 12 of 1215 words missing)",
+   "docli inspect https://resend.com/docs/api-reference/emails/send-email --name resend-api --render browser (coverage ok, 3 files)",
+   "docli add https://resend.com/docs/api-reference/emails/send-email --name resend-api --render browser (ok, 3 files)",
+   "docli search attachments (1 hit, Body Parameters)",
+   "docli show resend-api/headers.md (ok, 1015 tok)",
+   "docli show resend-api/body-parameters.md (piped to grep, ok)",
+   "docli inspect https://resend.com/docs --name resend --json (coverage error in JSON envelope)",
+   "docli check (both sources up to date)",
+   "docli sync (both sources up to date, no changes)"
+  ],
+  "add_ok": true,
+  "check_ok": true,
+  "check_output": "\u2713 resend: up to date (checked just now)\n\u2713 resend-api: up to date (checked just now)",
+  "sync_ok": true,
+  "sync_output": "\u2713 resend up to date (v1, 19 files)\n\u2713 resend-api up to date (v1, 3 files)",
+  "sync_changed_files": false,
+  "problems": [
+   {
+    "what": "The start URL https://resend.com/docs fails `docli add` with a coverage error; the default parse is not usable for this page.",
+    "severity": "blocker",
+    "command": "docli add https://resend.com/docs --name resend",
+    "output": "error: coverage check failed: 12 of 187 source words missing, 0 duplicated (missing \"at\" \u00d71, missing \"com\" \u00d71, missing \"complete\" \u00d71, missing \"docs\" \u00d71, missing \"documentation\" \u00d71, missing \"fetch\" \u25a01, missing \"https\" \u00d71, missing \"index\" \u00d71). Preview with `docli inspect`, adjust the selector or drop rules, or pass --force to write anyway"
+   },
+   {
+    "what": "Auto format and render detection misjudged the landing page: it was parsed as markdown (HTML page), 2 files, 571 tokens, and the browser render found 20 files. --render auto did not fall back to the headless browser even though the static parse was thin.",
+    "severity": "wrong",
+    "command": "docli inspect https://resend.com/docs --name resend",
+    "output": "parsed as markdown \u00b7 headings: h1 1, h2 3 ... plan: 2 files in 1 folders \u00b7 571 tok"
+   },
+   {
+    "what": "The same 12 'missing' words (at, com, https, docs, index, ...) fail coverage on a second, unrelated Resend page, suggesting a systematic false positive from link or nav text rather than real content loss. Not verified against the source HTML.",
+    "severity": "friction",
+    "command": "docli add https://resend.com/docs/api-reference/emails/send-email --name resend-api",
+    "output": "error: coverage check failed: 12 of 1215 source words missing, 0 duplicated (missing \"at\" \u00d71, missing \"com\" \u00d71, ...)"
+   },
+   {
+    "what": "The help text promises that a landing page gets data.suggestions with likely docs URLs, but none appeared in the inspect output or in the --json error envelope for the /docs landing page, so the advertised recovery path was not available.",
+    "severity": "friction",
+    "command": "docli inspect https://resend.com/docs --name resend --json",
+    "output": "JSON envelope has error.details with source/tree/coverage only; no suggestions field"
+   },
+   {
+    "what": "The /docs landing page does not hold API reference detail. Only the send-email reference page contained the three answers, so finding it required guessing URLs. Prefer docs index links that point to the detail pages.",
+    "severity": "friction",
+    "command": "docli inspect https://resend.com/docs --name resend --render browser",
+    "output": "plan: 20 files in 1 folders \u00b7 347 tok ... coverage ok: all 144 source words are in exactly one file (sections are only quickstart stubs)"
+   },
+   {
+    "what": "The llms-full.txt whole-docs file is only 1089 words (2.5k tokens) and does not contain the attachment or recipient limits, so it is not a complete docs dump despite its name. search 'idempotency' hit only a one-line mention in Skills.md.",
+    "severity": "friction",
+    "command": "docli search idempotency / docli search attachment / docli search recipients",
+    "output": "search idempotency -> Skills.md line 1 mention only; attachment and recipients -> no matches"
+   },
+   {
+    "what": "The --name flag is not applied to the title line of inspect output: the header printed resend-docs-introduction while the rules line printed name resend. Cosmetic but confusing.",
+    "severity": "friction",
+    "command": "docli inspect https://resend.com/docs --name resend",
+    "output": "resend-docs-introduction  https://resend.com/docs"
+   },
+   {
+    "what": "Heading titles carry a leading zero-width space (U+200B) copied from the site's anchor links, for example the title '\u200bHeaders' and '\u200bBody Parameters'. It shows in search output and would break exact-title matching.",
+    "severity": "friction",
+    "command": "docli show resend-api/headers.md / docli search attachments",
+    "output": "title: \u200bHeaders  and  \u200bBody Parameters  section  resend-api/body-parameters.md \u00b7 1.7k tok"
+   },
+   {
+    "what": "docli show prints the whole file, including code samples in nine languages, so a single parameter costs the full file's tokens (headers.md 1015 tok; body-parameters.md 1.7k tok). No section-only view was found in the help text I used.",
+    "severity": "friction",
+    "command": "docli show resend-api/headers.md",
+    "output": "full file dumped including Node.js, PHP, Python, Ruby, Go, Rust, Java, .NET, cURL, CLI snippets"
+   },
+   {
+    "what": "Search hints are useful: a miss says which pages are downloaded and suggests docli add <url>. Recorded as a positive.",
+    "severity": "friction",
+    "command": "docli search attachment",
+    "output": "hint: nothing here mentions \"attachment\". Only these pages are downloaded: resend (https://resend.com/llms-full.txt). ..."
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "resend",
+  "model": "haiku",
+  "run": 2,
+  "answers": [
+   {
+    "question": "1. How long do idempotency keys last before they expire?",
+    "answer": "24 hours. Source: .docli/resend-idempotency/idempotency-keys/how-to-use-idempotency-keys/_overview.md line 24 says \"Idempotency keys are kept in the system for **24 hours**\"; .docli/resend-idempotency/idempotency-keys/how-it-works.md line 14 says Resend checks for the same key \"in the last 24 hours\".",
+    "file_read": ".docli/resend-idempotency/idempotency-keys/how-to-use-idempotency-keys/_overview.md, .docli/resend-idempotency/idempotency-keys/how-it-works.md (grep-selected lines only)",
+    "tokens_read": 200
+   },
+   {
+    "question": "2. What is the maximum total size of attachments on one email?",
+    "answer": "40 MB per email, including attachments after Base64 encoding. Source: .docli/resend-attachments/attachments/INDEX.md line 22 (\"Emails can be no larger than 40MB (including attachments after Base64 encoding)\") and .docli/resend-send-email/send-email/body-parameters.md line 80 (\"max 40MB per email, after Base64 encoding of the attachments\").",
+    "file_read": ".docli/resend-attachments/attachments/INDEX.md, .docli/resend-send-email/send-email/body-parameters.md (grep-selected lines only)",
+    "tokens_read": 250
+   },
+   {
+    "question": "3. What is the maximum number of recipients in the `to` field of one email?",
+    "answer": "50. Source: .docli/resend-send-email/send-email/body-parameters.md line 22-23: \"Recipient email address. For multiple addresses, send as an array of strings. Max 50.\"",
+    "file_read": ".docli/resend-send-email/send-email/body-parameters.md (grep-selected lines only)",
+    "tokens_read": 150
+   }
+  ],
+  "commands": [
+   "docli --help (exit 0)",
+   "docli add --help (exit 0)",
+   "docli inspect --help (exit 0)",
+   "docli add https://resend.com/docs --name resend (exit 1: coverage check failed, 12 of 187 words missing)",
+   "docli inspect https://resend.com/docs --name resend (exit 1: coverage FAILED, plan 2 files)",
+   "docli inspect https://resend.com/docs/llms.txt --name resend (exit 0: coverage ok, 15k tok single file warning)",
+   "docli inspect https://resend.com/docs/llms-full.txt --name resend (exit 1: coverage FAILED, 143 missing, 16 duplicated, 1270 files, 624k tok)",
+   "docli add https://resend.com/docs --name resend --json --no-check (exit 1: coverage, JSON envelope, no suggestions field)",
+   "docli add https://resend.com/docs/llms.txt --name resend (exit 0: 2 files, 15k tok, coverage ok)",
+   "docli search \"idempotency\" --path ./.docli (exit 0: reported line 77, real line is 90)",
+   "docli add .../dashboard/emails/idempotency-keys.md --name resend-idempotency (exit 1: coverage, 12 of 1631 missing)",
+   "docli add .../dashboard/emails/attachments.md --name resend-attachments (exit 1: coverage, 12 of 2406 missing)",
+   "docli add .../api-reference/emails/send-email.md --name resend-send-email (exit 1: coverage, 12 of 1215 missing)",
+   "docli add (same three URLs) --force (exit 0 each, warning 'written with --force', coverage FAILED 12 missing)",
+   "docli check --path ./.docli (exit 0: all 4 sources 'up to date')",
+   "docli sync --path ./.docli (exit 1: 'resend-attachments: coverage check failed', sync not forced)",
+   "docli sync --help (exit 0: --force flag exists)",
+   "docli sync --force --path ./.docli (exit 0: all 4 'up to date', no changes shown)"
+  ],
+  "add_ok": true,
+  "check_ok": true,
+  "check_output": "docli check --path ./.docli: resend, resend-attachments, resend-idempotency, resend-send-email all reported \"up to date (checked just now)\", exit 0.",
+  "sync_ok": true,
+  "sync_output": "First docli sync (no --force) exited 1: \"error: resend-attachments: coverage check failed: 12 of 2406 source words missing ...\". docli sync --force exited 0: \"resend up to date (v1, 2 files)\", \"resend-attachments up to date (v1, 8 files)\", \"resend-idempotency up to date (v1, 7 files)\", \"resend-send-email up to date (v1, 4 files)\". Doc-file checksum before cd5cd423a6eb7b7bbf14d0f9db09228c, after cd5cd423a6eb7b7bbf14d0f9db09228c.",
+  "sync_changed_files": false,
+  "problems": [
+   {
+    "what": "Start URL https://resend.com/docs cannot be split: add, inspect and --json all fail coverage. Output yields only documentation-index.md (26 tok) and Introduction.md (545 tok).",
+    "severity": "blocker",
+    "command": "docli add https://resend.com/docs --name resend",
+    "output": "error: coverage check failed: 12 of 187 source words missing, 0 duplicated (missing \"at\" \u00d71, missing \"com\" \u00d71, missing \"complete\" \u00d71, missing \"docs\" \u00d71, missing \"documentation\" \u00d71, missing \"fetch\" ral\" \u00d71, missing \"https\" \u00d71, missing \"index\" \u00d71)"
+   },
+   {
+    "what": "The same 12 words are missing on every Resend .md page tried (idempotency, attachments, send-email). Words such as 'fetch', 'complete', 'documentation index', 'https' suggest a boilerplate hint line is dropped, but this was not verified against the raw source (no curl allowed).",
+    "severity": "wrong",
+    "command": "docli add .../dashboard/emails/idempotency-keys.md --name resend-idempotency",
+    "output": "coverage check failed: 12 of 1631 source words missing, 0 duplicated (missing \"at\" \u00d71, missing \"com\" \u00d71, missing \"complete\" \u00d71, missing \"docs\" \u00d71, missing \"documentation\" \u00d71, missing \"fetch\" \u00d71, missing \"https\" \u00d71, missing \"index\" \u00d71)"
+   },
+   {
+    "what": "Full-docs file llms-full.txt is not usable: 1270 files, 624k tokens, and the coverage check fails with extra and duplicated tokens, including numbers and words from code or sample text. Nothing was written.",
+    "severity": "wrong",
+    "command": "docli inspect https://resend.com/docs/llms-full.txt --name resend",
+    "output": "plan: 1270 files in 139 folders \u00b7 624k tok ... coverage FAILED: 143 missing, 16 duplicated of 277151 words (missing \"1\" \u00d716, missing \"2\" \u00d716, ... missing \"key\" \u00d75, missing \"api\" \u00d74, extra \"restrictedapikey\" \u00d72, extra \"addtosegment\" \u00d71 ...)"
+   },
+   {
+    "what": "llms.txt splits into a single 15k-token file (_overview.md, 15318 tokens) with no sub-headings. The warning is shown, but the add still reports success, so the agent has to rely on search/grep for this source. A bare show would exceed the per-question read budget.",
+    "severity": "friction",
+    "command": "docli add https://resend.com/docs/llms.txt --name resend",
+    "output": "\u2713 resend v1 \u00b7 2 files \u00b7 15k tok ... warning: _overview.md: 15318 tokens and no sub-headings to split on"
+   },
+   {
+    "what": "docli search reports the wrong line number. It said 'line 77' for the Idempotency Keys link, but grep -n on the same file shows line 90, a 13-line offset (probably front matter not counted).",
+    "severity": "wrong",
+    "command": "docli search \"idempotency\" --path ./.docli",
+    "output": "Resend  overview  resend/_overview.md \u00b7 15k tok / line 77: - Idempotency Keys: ... (grep -n on _overview.md gives 90:)"
+   },
+   {
+    "what": "Links from llms.txt do not become docs. The idempotency, attachment and send-email pages each needed a separate manual docli add, and each one then needed --force. docli gives no way to follow links from one source into another.",
+    "severity": "friction",
+    "command": "docli add https://resend.com/docs/dashboard/emails/idempotency-keys.md --name resend-idempotency",
+    "output": "coverage check failed ... Preview with `docli inspect`, adjust the selector or drop rules, or pass --force to write anyway"
+   },
+   {
+    "what": "Inconsistent staleness: docli check reports resend-attachments as up to date, but docli sync (without --force) stops with a coverage error on the same source. It is unclear whether the run stopped before the other sources.",
+    "severity": "wrong",
+    "command": "docli sync --path ./.docli",
+    "output": "error: resend-attachments: coverage check failed: 12 of 2406 source words missing ... pass --force to write anyway"
+   },
+   {
+    "what": "sync --force reports 'up to date' for all four sources and writes nothing visible, so the output does not show what, if anything, changed. The checksum was the only way to confirm no change.",
+    "severity": "friction",
+    "command": "docli sync --force --path ./.docli",
+    "output": "\u2713 resend up to date (v1, 2 files) ... \u2713 resend-attachments up to date (v1, 8 files) ..."
+   },
+   {
+    "what": "Help text does not say that sync needs --force for sources that were added with --force. The sync --help text only gives '--force write even if the coverage check fails', so the link to the earlier forced add is not explained.",
+    "severity": "friction",
+    "command": "docli sync --help",
+    "output": "--force   write even if the coverage check fails"
+   },
+   {
+    "what": "Low-context usability: the start page (landing) gives no suggestions in the JSON envelope; the error has no 'suggestions' field even though add --help says a landing page can list likely docs URLs.",
+    "severity": "friction",
+    "command": "docli add https://resend.com/docs --name resend --json --no-check",
+    "output": "{\"ok\": false, \"error\": {\"code\": \"coverage\", ... \"details\": {\"source_words\": 187, \"output_words\": 175, \"missing\": 12 ...}}} (no suggestions key)"
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "resend",
+  "model": "sonnet",
+  "run": 1,
+  "answers": [
+   {
+    "question": "How long do idempotency keys last before they expire?",
+    "answer": "24 hours. resend/idempotency-keys/how-it-works.md: 'Resend checks whether an email with the same idempotency key has already been sent in the last 24 hours.'",
+    "file_read": "resend/idempotency-keys/how-it-works.md",
+    "tokens_read": 125
+   },
+   {
+    "question": "What is the maximum total size of attachments on one email?",
+    "answer": "40MB total per email (after Base64 encoding). resend/attachments/attachment-limitations.md: 'Emails can be no larger than 40MB (including attachments after Base64 encoding).' Also seen in search snippets: 'File attachments (max 40MB total)'.",
+    "file_read": "search snippets from resend/attachments/attachment-limitations.md and resend/ai-onboarding/single-email.md",
+    "tokens_read": 300
+   },
+   {
+    "question": "What is the maximum number of recipients in the `to` field of one email?",
+    "answer": "50. Search snippets: ai-onboarding/single-email.md says '`to` | string[] | Recipient addresses (max 50)'; batch-email.md says 'Max 50 recipients per individual email'. I did not see this line on the send-email/body-parameters.md page itself (read only the first lines), so the answer comes from the onboarding page and snippets.",
+    "file_read": "search snippets from resend/ai-onboarding/single-email.md, batch-email.md; resend/send-email/body-parameters.md (partial)",
+    "tokens_read": 350
+   }
+  ],
+  "commands": [
+   "docli --help (0)",
+   "docli add --help (0)",
+   "docli add https://resend.com/docs --name resend (exit 1, coverage failed; page was only 187 words, a pointer to llms.txt)",
+   "docli add https://resend.com/docs --name resend --json (exit 1, same error)",
+   "docli add https://resend.com/docs/llms-full.txt --name resend (exit 1, coverage failed 143 of 277151 words)",
+   "docli add https://resend.com/docs/llms-full.txt --name resend --force (0, 1270 files, 624k tok)",
+   "docli search idempotency (0)",
+   "docli show resend/idempotency-keys/how-it-works.md (0)",
+   "docli search 'attachments total size' (0, no matches)",
+   "docli search 'maximum number of recipients' (0, irrelevant)",
+   "docli search 40MB (0)",
+   "docli search attachments (0)",
+   "docli search 'Maximum of 50' (0, irrelevant)",
+   "docli search '50 recipients' (0)",
+   "docli tree resend/send-email (0)",
+   "docli show resend/send-email/body-parameters.md (0, first lines only)",
+   "checksum A (14db9522f0c9a5f919cd5532cb74bd1f)",
+   "docli check (0): resend: up to date (checked just now)",
+   "docli sync (exit 1, coverage check failed)",
+   "docli sync --help (0)",
+   "docli sync --force (0): resend up to date (v1, 1270 files)",
+   "checksum B (14db9522f0c9a5f919cd5532cb74bd1f)"
+  ],
+  "add_ok": true,
+  "check_ok": true,
+  "sync_ok": true,
+  "sync_changed_files": false,
+  "files": 1270,
+  "problems": [
+   {
+    "what": "add on the given start URL fails: the page is a tiny pointer page, not the docs",
+    "severity": "friction",
+    "command": "docli add https://resend.com/docs --name resend",
+    "output": "error: coverage check failed: 12 of 187 source words missing ... (missing \"https\" \u00d71, missing \"index\" \u00d71). Preview with `docli inspect`... or pass --force. The error did not say the page is a landing/pointer page, and gave no suggestion of llms-full.txt; --json output had no data.suggestions either. I guessed /docs/llms-full.txt from the add --help text."
+   },
+   {
+    "what": "Coverage check fails on the real whole-docs file, so --force is required to add at all",
+    "severity": "wrong",
+    "command": "docli add https://resend.com/docs/llms-full.txt --name resend",
+    "output": "error: coverage check failed: 143 of 277151 source words missing, 16 duplicated (missing \"1\" \u00d716, ... extra \"restrictedapikey\" \u00d72 ...). 0.05% mismatch, probably numbered-list markers and heading slug normalisation; had to use --force, after which output says 'coverage FAILED' with a warning."
+   },
+   {
+    "what": "Plain `docli sync` fails with the same coverage error even though check says the source is up to date, so a routine sync needs --force",
+    "severity": "wrong",
+    "command": "docli sync",
+    "output": "error: resend: coverage check failed: 143 of 277151 source words missing, 16 duplicated ... pass --force to write anyway. The error text does not mention that sync has a --force flag; found it via `docli sync --help`. Also `docli check` said up to date, but sync still errored (exit 1) instead of saying nothing to do."
+   },
+   {
+    "what": "Search is weak for natural phrases: multi-word queries returned 'no matches' or irrelevant results",
+    "severity": "friction",
+    "command": "docli search 'attachments total size' / 'maximum number of recipients'",
+    "output": "no matches for \"attachments total size\" ... ; 'maximum number of recipients' returned only list-drafts/list-inboxes pages. Single-token or exact-phrase queries ('40MB', '50 recipients') worked."
+   },
+   {
+    "what": "Duplicate near-identical sections in the index (many repeated pages such as send-email-with-resend-node-js-sdk-10/11/12/13) clutter search results",
+    "severity": "friction",
+    "command": "docli search attachments",
+    "output": "Repeated '2. Complete emails.send() Parameter Reference' entries for node-js-sdk-10, -11, -12, -13 ..."
+   },
+   {
+    "what": "The `to` recipient limit was not on the send-email body-parameters page itself, only on ai-onboarding pages and in other endpoints' docs",
+    "severity": "friction",
+    "command": "docli show resend/send-email/body-parameters.md",
+    "output": "Only 'Recipient email address. For multiple addresses, send as an array of strings.' in the part I read (first lines)."
+   },
+   {
+    "what": "Sync made no change; the two checksums were identical",
+    "severity": "friction",
+    "command": "docli sync --force",
+    "output": "\u2713 resend up to date (v1, 1270 files)"
+   }
+  ],
+  "budget_kept": true,
+  "check_output": "\u2713 resend: up to date (checked just now)",
+  "sync_output": "First `docli sync`: error: resend: coverage check failed: 143 of 277151 source words missing, 16 duplicated ... pass --force to write anyway. Then `docli sync --force`: \u2713 resend up to date (v1, 1270 files). Checksum before and after: 14db9522f0c9a5f919cd5532cb74bd1f (identical)."
+ },
+ {
+  "source": "python",
+  "model": "haiku",
+  "run": 1,
+  "answers": [
+   {
+    "question": "1. What is the value of datetime.MAXYEAR?",
+    "answer": "9999. The file says: \"The largest year number allowed in a date or datetime object. MAXYEAR is 9999.\" (MINYEAR is 1.)",
+    "file_read": ".docli/python-datetime/Constants.md",
+    "tokens_read": 380
+   },
+   {
+    "question": "2. What does the %j format code mean in strftime?",
+    "answer": "Day of the year as a zero-padded decimal number, range 001, 002, ..., 366 (from the format code table row `%j | Day of the year as a zero-padded decimal number. | 001, 002, \u2026, 366`).",
+    "file_read": ".docli/python-datetime/strftime-and-strptime-behavior/strftime-and-strptime-format-codes.md (via docli search hit on line 31; file not opened)",
+    "tokens_read": 60
+   },
+   {
+    "question": "3. What range of values is allowed for the days of a timedelta?",
+    "answer": "-999999999 <= days <= 999999999 (from timedelta-objects/_overview.md line 18). Found via docli search, then docli show of the timedelta folder INDEX.",
+    "file_read": ".docli/python-datetime/timedelta-objects/_overview.md (via docli search hit line 18)",
+    "tokens_read": 160
+   }
+  ],
+  "commands": [
+   "docli --help (exit 0)",
+   "docli add --help (exit 0)",
+   "docli inspect --help (exit 0)",
+   "docli add https://docs.python.org/3/library/datetime.html --name python-datetime --no-check (exit 1: coverage check failed)",
+   "docli inspect <url> --name python-datetime --depth 1 (exit 1: coverage FAILED)",
+   "docli inspect <url> --selector div.body (exit 1: coverage FAILED, 14957 words)",
+   "docli inspect <url> --max-tokens 2000 (exit 1: coverage FAILED)",
+   "docli inspect <url> --render browser (exit 1: coverage FAILED)",
+   "docli add <url> --name python-datetime --no-check --force (exit 0, written with warning)",
+   "docli show python-datetime (exit 0)",
+   "docli search --help (exit 0)",
+   "docli search MAXYEAR --source python-datetime (exit 0)",
+   "docli search \"%j\" --source python-datetime --limit 5 (exit 0)",
+   "docli tree python-datetime --depth 2 (exit 0)",
+   "docli search 999999999 --source python-datetime (exit 0)",
+   "docli show python-datetime/timedelta-objects/INDEX.md (exit 0)",
+   "docli check --help (exit 0)",
+   "docli check python-datetime (exit 0: up to date)",
+   "docli sync python-datetime (exit 1: coverage check failed)",
+   "docli sync --help (exit 0)",
+   "docli sync python-datetime --force (exit 0: up to date (v1, 17 files))",
+   "Shell: find .docli -type f -not -path '*/.meta/*' -exec md5 -q {} + | sort | md5 (before: d3142ebe28b96dfc23e8af2b3724e3bd; after: d3142ebe28b96dfc23e8af2b3724e3bd)"
+  ],
+  "add_ok": true,
+  "check_ok": true,
+  "check_output": "\u2713 python-datetime: up to date (checked just now)",
+  "sync_ok": true,
+  "sync_output": "Without --force: \"error: python-datetime: coverage check failed: 1 of 14884 source words missing, 3 duplicated (missing \"246060\" \u00d71, extra \"60\" \u00d72, extra \"24\" \u00d71)\" (exit 1). With --force: \"\u2713 python-datetime up to date (v1, 17 files)\" (exit 0). Doc checksum unchanged.",
+  "sync_changed_files": false,
+  "problems": [
+   {
+    "what": "The datetime page cannot be added or synced without --force. Coverage fails on every option tried: default, --selector div.body, --max-tokens 2000, --render browser. No option I tried fixed it, and the error does not say which element causes the missing \"246060\" or the extra \"60\"/\"24\".",
+    "severity": "blocker",
+    "command": "docli add https://docs.python.org/3/library/datetime.html --name python-datetime --no-check",
+    "output": "error: coverage check failed: 1 of 14884 source words missing, 3 duplicated (missing \"246060\" \u00d71, extra \"60\" \u00d72, extra \"24\" \u00d71). Preview with `docli inspect`, adjust the selector or drop rules, or pass --force to write anyway"
+   },
+   {
+    "what": "The --force used on add is not kept for sync. sync fails the same coverage check that add --force had accepted, so the source cannot be refreshed without typing --force each time.",
+    "severity": "wrong",
+    "command": "docli sync python-datetime",
+    "output": "error: python-datetime: coverage check failed: 1 of 14884 source words missing, 3 duplicated (missing \"246060\" \u00d71, extra \"60\" \u00d72, extra \"24\" \u00d71). Preview with `docli inspect`, adjust the selector or drop rules, or pass --force to write anyway"
+   },
+   {
+    "what": "sync --force reports success with no warning, although the coverage check still fails. The add --force path printed a \"\u26a0 written with --force\" line; sync --force does not.",
+    "severity": "wrong",
+    "command": "docli sync python-datetime --force",
+    "output": "\u2713 python-datetime up to date (v1, 17 files)"
+   },
+   {
+    "what": "The inspect and sync errors tell the user to adjust the selector or drop rules, but do not say which rule or selector to try, and they do not show the element that produced the mismatch.",
+    "severity": "friction",
+    "command": "docli inspect https://docs.python.org/3/library/datetime.html --name python-datetime",
+    "output": "coverage FAILED: 1 missing, 3 duplicated of 14884 words (missing \"246060\" \u00d71, extra \"60\" \u00d72, extra \"24\" \u00d71)"
+   },
+   {
+    "what": "The datetime-objects/_overview.md file is about 11k tokens with no sub-headings, so it cannot be split under the max-tokens setting. It is the largest file in the plan. It is far above the ~5000-token reading budget, so the only way to read it in part is by line range.",
+    "severity": "friction",
+    "command": "docli inspect https://docs.python.org/3/library/datetime.html --name python-datetime --depth 1",
+    "output": "warning: datetime-objects/_overview.md: 11270 tokens and no sub-headings to split on"
+   },
+   {
+    "what": "Search hits show the matching line only, not the section heading. For MAXYEAR the hit was in the Constants section, which I confirmed by reading the file. The search output also does not show the token size of the matched section, which made it hard to keep the reading budget.",
+    "severity": "friction",
+    "command": "docli search MAXYEAR --source python-datetime",
+    "output": "Constants  section  python-datetime/Constants.md \u00b7 320 tok\n    line 7: datetime.MAXYEAR\u00b6"
+   },
+   {
+    "what": "The --help text for docli add says a whole-docs file is best, but the datetime page is a single HTML page with no llms-full.txt alternative, and docli gives no hint on how to find one for this site.",
+    "severity": "friction",
+    "command": "docli add --help",
+    "output": "docli reads one page per source. Give it the page that holds the docs, not the site's home page: a whole-docs file (/llms-full.txt, /docs.md) is best."
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "python",
+  "model": "haiku",
+  "run": 2,
+  "answers": [
+   {
+    "question": "What is the value of datetime.MAXYEAR?",
+    "answer": "9999. Source: Constants.md, which says \"MAXYEAR is 9999.\"",
+    "file_read": "python-datetime/Constants.md",
+    "tokens_read": 320
+   },
+   {
+    "question": "What does the %j format code mean in strftime?",
+    "answer": "Day of the year as a zero-padded decimal number, range 001, 002, ..., 366. Source: strftime-and-strptime-format-codes.md (table row \"%j | Day of the year as a zero-padded decimal number. | 001, 002, ..., 366\"). Found via search; I did not open the file.",
+    "file_read": "python-datetime/strftime-and-strptime-behavior/strftime-and-strptime-format-codes.md (search hit line 31)",
+    "tokens_read": 200
+   },
+   {
+    "question": "What range of values is allowed for the days of a timedelta?",
+    "answer": "-999999999 <= days <= 999999999. Source: timedelta-objects/_overview.md, line 18 (search hit).",
+    "file_read": "python-datetime/timedelta-objects/_overview.md (search hit line 18)",
+    "tokens_read": 100
+   }
+  ],
+  "commands": [
+   "docli --help (ok)",
+   "docli add --help (ok)",
+   "docli add https://docs.python.org/3/library/datetime.html --name python-datetime (error: coverage check failed, 1 of 14884 words missing \"246060\")",
+   "docli inspect --help (ok)",
+   "docli inspect <datetime url> --name python-datetime (coverage FAILED, same error)",
+   "docli inspect ... --selector \"section#module-datetime\" --max-tokens 3000 (coverage FAILED, same error)",
+   "docli inspect ... --render static --file-level 2 (coverage FAILED, same error)",
+   "docli add <datetime url> --name python-datetime --force (ok, written with --force, 17 files)",
+   "docli show python-datetime (ok)",
+   "docli search MAXYEAR --path ./.docli (ok)",
+   "docli show python-datetime/Constants.md --path ./.docli (ok)",
+   "docli search \"%j\" --path ./.docli (ok)",
+   "docli search \"999999999\" --path ./.docli (ok)",
+   "docli check --path ./.docli (ok: up to date)",
+   "docli sync --path ./.docli (error: coverage check failed)",
+   "docli sync --help (ok)",
+   "docli sync python-datetime --force --path ./.docli (ok: up to date, v1, 17 files)"
+  ],
+  "add_ok": true,
+  "check_ok": true,
+  "check_output": "\u2713 python-datetime: up to date (checked just now)",
+  "sync_ok": true,
+  "sync_output": "Plain `docli sync` failed: error: python-datetime: coverage check failed: 1 of 14884 source words missing, 3 duplicated (missing \"246060\" \u00d71, extra \"60\" \u00d72, extra \"24\" \u00d71). Preview with `docli inspect`, adjust the selector or drop rules, or pass --force to write anyway. `docli sync python-datetime --force` then printed: \u2713 python-datetime up to date (v1, 17 files)",
+  "sync_changed_files": false,
+  "problems": [
+   {
+    "what": "Default add fails the coverage check on the standard Python datetime page, with no location for the mismatch. The error only names the word \"246060\" and two extra tokens. Nothing in the output says where it is.",
+    "severity": "blocker",
+    "command": "docli add https://docs.python.org/3/library/datetime.html --name python-datetime",
+    "output": "error: coverage check failed: 1 of 14884 source words missing, 3 duplicated (missing \"246060\" \u00d71, extra \"60\" \u00d72, extra \"24\" \u00d71). Preview with `docli inspect`, adjust the selector or drop rules, or pass --force to write anyway"
+   },
+   {
+    "what": "The suggested fix (inspect) does not help. inspect fails with the same coverage error and gives no detail. Narrowing --selector to section#module-datetime, using --render static, and using --file-level 2 all still failed with the identical numbers.",
+    "severity": "wrong",
+    "command": "docli inspect <datetime url> --selector \"section#module-datetime\" --max-tokens 3000",
+    "output": "coverage FAILED: 1 missing, 3 duplicated of 14957 words (missing \"246060\" \u00d71, extra \"60\" \u00d72, extra \"24\" \u00d71)"
+   },
+   {
+    "what": "After add --force wrote the source, plain sync refuses the same source. The forced write is not carried into sync, and the error text does not mention that the source was written with --force.",
+    "severity": "blocker",
+    "command": "docli sync --path ./.docli",
+    "output": "error: python-datetime: coverage check failed: 1 of 14884 source words missing, 3 duplicated ... pass --force to write anyway"
+   },
+   {
+    "what": "A forced write leaves the source in a bad state with no visible warning on later commands. docli check reports the source as up to date and says nothing about the failed coverage check.",
+    "severity": "friction",
+    "command": "docli check --path ./.docli",
+    "output": "\u2713 python-datetime: up to date (checked just now)"
+   },
+   {
+    "what": "Overview file is about 11k tokens with no sub-headings to split on. docli warns about it, but the split cannot be fixed by the tool's own rules. It is far over the ~5000-token reading budget, so an agent cannot read it whole and has to rely on search. I did not verify whether show supports line ranges.",
+    "severity": "friction",
+    "command": "docli add (warning line)",
+    "output": "warning: datetime-objects/_overview.md: 11270 tokens and no sub-headings to split on"
+   },
+   {
+    "what": "Help text does not explain how to get past the coverage gate without --force, or whether --force is saved. inspect --save was not tried, so I could not check whether the rules store the force choice.",
+    "severity": "friction",
+    "command": "docli sync --help / docli add --help",
+    "output": "--force   write even if the coverage check fails"
+   },
+   {
+    "what": "Part 2 found nothing stale and nothing changed. The checksum was identical before and after the forced sync, so the 'update' did no real work. The task asked to record a checksum before and after the update, and I did.",
+    "severity": "friction",
+    "command": "find .docli ... | md5",
+    "output": "before: d3142ebe28b96dfc23e8af2b3724e3bd, after: d3142ebe28b96dfc23e8af2b3724e3bd"
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "python",
+  "model": "sonnet",
+  "run": 1,
+  "answers": [
+   {
+    "question": "What is the value of datetime.MAXYEAR?",
+    "answer": "9999 (Constants.md: 'MAXYEAR is 9999')",
+    "file_read": ".docli/datetime/Constants.md",
+    "tokens_read": 320
+   },
+   {
+    "question": "What does the %j format code mean in strftime?",
+    "answer": "Day of the year as a zero-padded decimal number (001, 002, ..., 366).",
+    "file_read": ".docli/datetime/strftime-and-strptime-behavior/strftime-and-strptime-format-codes.md (search hit line 31)",
+    "tokens_read": 50
+   },
+   {
+    "question": "What range of values is allowed for the days of a timedelta?",
+    "answer": "-999999999 <= days <= 999999999",
+    "file_read": ".docli/datetime/timedelta-objects/_overview.md (grep line 31)",
+    "tokens_read": 30
+   }
+  ],
+  "commands": [
+   "docli --help (0)",
+   "docli add --help (0)",
+   "docli add <url> --name datetime (1: coverage check failed)",
+   "docli inspect --help (0)",
+   "docli inspect <url> (0, shows coverage FAILED)",
+   "docli add <url> --name datetime --force (0, warning)",
+   "docli search --help (0)",
+   "docli show --help (0)",
+   "docli show datetime Constants --raw (0)",
+   "docli search '%j' --source datetime (0)",
+   "docli search timedelta (0, no output shown)",
+   "grep for days range in timedelta _overview.md (0)",
+   "docli check (0: up to date)",
+   "docli sync (1: coverage check failed)",
+   "docli sync --help (0)",
+   "docli sync --force (0: up to date)"
+  ],
+  "add_ok": true,
+  "check_ok": true,
+  "check_output": "\u2713 datetime: up to date (checked just now)",
+  "sync_ok": true,
+  "sync_output": "Plain `docli sync` errored: 'datetime: coverage check failed: 1 of 14884 source words missing, 3 duplicated (missing \"246060\" \u00d71, extra \"60\" \u00d72, extra \"24\" \u00d71)...pass --force'. `docli sync --force` gave: '\u2713 datetime up to date (v1, 17 files)'. Checksum before and after both 5db4d918dd8abe22b98375b84fb81cf2.",
+  "sync_changed_files": false,
+  "files": 17,
+  "problems": [
+   {
+    "what": "Plain add of the Python datetime page fails coverage check on a trivial formatting artifact (24*60*60 rendered as '246060'); needed --force. The coverage check is too strict for single-word markup artifacts.",
+    "severity": "friction",
+    "command": "docli add https://docs.python.org/3/library/datetime.html --name datetime",
+    "output": "error: coverage check failed: 1 of 14884 source words missing, 3 duplicated (missing \"246060\" \u00d71, extra \"60\" \u00d72, extra \"24\" \u00d71)"
+   },
+   {
+    "what": "Because the source was forced, a plain `docli sync` also fails on every run until --force is given; the forced choice is not remembered in source.yaml, so routine sync/--latest flows would error.",
+    "severity": "wrong",
+    "command": "docli sync",
+    "output": "error: datetime: coverage check failed: 1 of 14884 source words missing, 3 duplicated ..."
+   },
+   {
+    "what": "Default source name derived from URL is long ('python-3-library-datetime'), the folder inside the INDEX differs from the --name 'datetime' used in paths (inspect output header says 'datetime' but tree shows python-3-library-datetime/). Minor confusion.",
+    "severity": "friction"
+   },
+   {
+    "what": "datetime-objects/_overview.md is 11k tokens with no sub-headings to split on (docli warns) so the class docs are not cheaply readable; had to grep instead of using show.",
+    "severity": "friction",
+    "output": "warning: datetime-objects/_overview.md: 11270 tokens and no sub-headings to split on"
+   },
+   {
+    "what": "`docli search timedelta` printed nothing visible (output swallowed in my command ordering), and the search for '%j' returned only line hits, not the definition's neighbouring context; I used grep on the stored file for the timedelta days range. Search by name did not surface the days-range line.",
+    "severity": "friction"
+   },
+   {
+    "what": "Stored markdown contains many long link URLs per line (e.g. '[\u00b6](https://docs.python.org/... \"Link to this definition\")'), inflating tokens and noise.",
+    "severity": "friction"
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "openapi",
+  "model": "haiku",
+  "run": 1,
+  "answers": [
+   {
+    "question": "1. Which HTTP method and path finds pets by status?",
+    "answer": "GET /pet/findByStatus (operationId: findPetsByStatus, summary 'Finds Pets by status.'). Source: .docli/petstore/_overview.md lines 126-127 (per the search hit and the stored file).",
+    "file_read": ".docli/petstore/_overview.md (lines 118-175 read via sed)",
+    "tokens_read": 600
+   },
+   {
+    "question": "2. What values does the status parameter of that operation accept, and what is its default?",
+    "answer": "Accepts enum: available, pending, sold. Default: available. Parameter is in: query, required: true, explode: true. Source: .docli/petstore/_overview.md lines 118-175 (same read as Q1, not counted twice).",
+    "file_read": ".docli/petstore/_overview.md (lines 118-175 read via sed)",
+    "tokens_read": 0
+   },
+   {
+    "question": "3. What is the header name used by the api_key security scheme?",
+    "answer": "api_key. The securitySchemes entry is 'api_key: type: apiKey, name: api_key, in: header' (.docli/petstore/_overview.md lines 849-852). docli search for 'api_key' did not return this definition; it only returned a usage line.",
+    "file_read": ".docli/petstore/_overview.md (lines 840-852 read via sed)",
+    "tokens_read": 200
+   }
+  ],
+  "commands": [
+   "docli --help (exit 0)",
+   "docli add --help (exit 0)",
+   "docli search --help (exit 0)",
+   "docli add https://raw.githubusercontent.com/swagger-api/swagger-petstore/master/src/main/resources/openapi.yaml --name petstore (exit 0)",
+   "docli tree petstore (exit 0)",
+   "docli search findPetsByStatus --source petstore (exit 0)",
+   "docli show --help (exit 0)",
+   "docli inspect <openapi.yaml url> --max-tokens 1000 (exit 0)",
+   "docli search 'api_key securitySchemes' --source petstore (exit 0)",
+   "docli search api_key --source petstore --limit 5 (exit 0)",
+   "docli check petstore (exit 0)",
+   "docli sync petstore (exit 0)"
+  ],
+  "add_ok": true,
+  "check_ok": true,
+  "sync_ok": true,
+  "sync_changed_files": false,
+  "check_output": "\u2713 petstore: up to date (checked just now)",
+  "sync_output": "\u2713 petstore up to date (v1, 1 files), exit 0. Checksum before sync 43f3e6b300df2e9c4672c9b2543e6b3a, after sync 43f3e6b300df2e9c4672c9b2543e6b3a (identical).",
+  "files": 1,
+  "problems": [
+   {
+    "what": "add parses a YAML OpenAPI file as Markdown and keeps the whole spec in one file. No per-path or per-schema split.",
+    "severity": "wrong",
+    "command": "docli add https://raw.githubusercontent.com/swagger-api/swagger-petstore/master/src/main/resources/openapi.yaml --name petstore",
+    "output": "parsed as markdown\ncoverage ok: all 2083 source words are in exactly one file\n\u2713 petstore v1 \u00b7 1 files \u00b7 5.8k tok"
+   },
+   {
+    "what": "inspect warns that the single file is too large to split, but gives no remedy and nothing it offers can split it. A 5.8k-token file is over the agent read budget, so docli show on it would be too large.",
+    "severity": "friction",
+    "command": "docli inspect <openapi.yaml url> --max-tokens 1000",
+    "output": "warning: _overview.md: 5814 tokens and no sub-headings to split on\nnothing written; --save keeps these rules, `docli add` writes the docs"
+   },
+   {
+    "what": "docli show has no line-range option, so reading one operation in the 5.8k-token file meant reading the stored file with sed. I did this on a file docli wrote, not on the source, and read only the ranges I needed.",
+    "severity": "friction",
+    "command": "docli show --help",
+    "output": "Flags: --raw, --source (no line or range flag)"
+   },
+   {
+    "what": "search prints only the first matching line per section. The api_key search returned only line 233, but the stored file also matches at lines 246, 388 and 849 (grep: 246 '- api_key: []', 388 '- api_key: []', 849 'api_key:'). The securitySchemes definition at line 849 was not surfaced.",
+    "severity": "wrong",
+    "command": "docli search api_key --source petstore --limit 5",
+    "output": "raw-githubusercontent-...-openapi  overview  petstore/_overview.md \u00b7 5.8k tok\n    line 233: - api_key: []"
+   },
+   {
+    "what": "search for 'api_key securitySchemes' also returned only line 233 and did not find the scheme definition, so the query needed a second, separate step.",
+    "severity": "friction",
+    "command": "docli search 'api_key securitySchemes' --source petstore",
+    "output": "line 233: - api_key: []"
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "openapi",
+  "model": "haiku",
+  "run": 2,
+  "answers": [
+   {
+    "question": "1. Which HTTP method and path finds pets by status?",
+    "answer": "GET /pet/findByStatus (operationId findPetsByStatus, summary 'Finds Pets by status.'). Found in the stored file _overview.md, line 126 of the split.",
+    "file_read": ".docli/petstore/_overview.md (lines 110-175 read with sed)",
+    "tokens_read": 700
+   },
+   {
+    "question": "2. What values does the status parameter accept, and what is its default?",
+    "answer": "Enum values: available, pending, sold. Default: available. The parameter is in: query, required: true, explode: true, type string.",
+    "file_read": ".docli/petstore/_overview.md (lines 110-175, same read as Q1)",
+    "tokens_read": 0
+   },
+   {
+    "question": "3. What is the header name used by the api_key security scheme?",
+    "answer": "api_key. The scheme is type apiKey, name api_key, in header (components.securitySchemes.api_key, line ~849 of _overview.md).",
+    "file_read": ".docli/petstore/_overview.md (lines 827-856)",
+    "tokens_read": 300
+   }
+  ],
+  "commands": [
+   "docli --help (exit 0)",
+   "docli add --help (exit 0)",
+   "docli add https://raw.githubusercontent.com/swagger-api/swagger-petstore/master/src/main/resources/openapi.yaml --name petstore (exit 0)",
+   "docli tree petstore (exit 0)",
+   "docli search --help (exit 0)",
+   "docli search findPetsByStatus --path .docli (exit 0)",
+   "docli show --help (exit 0)",
+   "docli search api_key --path .docli (exit 0)",
+   "docli search securitySchemes --path .docli (exit 0)",
+   "docli inspect --help (exit 0)",
+   "docli check --path .docli (exit 0, 'up to date')",
+   "docli check --help (exit 0)",
+   "docli sync --help (exit 0)",
+   "docli check petstore --json --path .docli (exit 0)",
+   "docli sync petstore --path .docli (exit 0, 'up to date', nothing written)",
+   "docli inspect <spec url> --max-tokens 1000 --name petstore-split (exit 0, nothing written)",
+   "docli list --path .docli (exit 0)"
+  ],
+  "add_ok": true,
+  "check_ok": true,
+  "check_output": "\u2713 petstore: up to date (checked just now). JSON: {\"ok\": true, \"command\": \"check\", \"data\": [{\"source\": \"petstore\", \"status\": \"fresh\", \"message\": \"up to date (checked just now)\"}], \"stale\": []}. Note: check gives no upstream version, ETag or hash, so the comparison basis is not visible.",
+  "sync_ok": true,
+  "sync_output": "\u2713 petstore up to date (v1, 1 files)",
+  "sync_changed_files": false,
+  "files": 3,
+  "problems": [
+   {
+    "what": "Auto format detection treats the OpenAPI YAML as Markdown. The add output says 'parsed as markdown' with no warning.",
+    "severity": "wrong",
+    "command": "docli add <openapi.yaml> --name petstore",
+    "output": "parsed as markdown\ncoverage ok: all 2083 source words are in exactly one file"
+   },
+   {
+    "what": "The whole 2083-word OpenAPI spec is stored as one 5.8k-token file, so the cheap-read promise fails. Any question needs a file read near the 5000-token limit. add reports success and 'coverage ok' with no warning about size.",
+    "severity": "blocker",
+    "command": "docli add <openapi.yaml> --name petstore",
+    "output": "\u2713 petstore v1 \u00b7 1 files \u00b7 5.8k tok \u2192 .docli/petstore"
+   },
+   {
+    "what": "Finer splitting does not help YAML. inspect with --max-tokens 1000 still plans one file. The only hint is a warning, and the headings list is empty. No fallback split by top-level keys or paths is offered.",
+    "severity": "wrong",
+    "command": "docli inspect <openapi.yaml> --max-tokens 1000 --name petstore-split",
+    "output": "headings: \nplan: 1 files in 1 folders \u00b7 5.8k tok \u00b7 largest _overview.md (5.8k tok)\nwarning: _overview.md: 5814 tokens and no sub-headings to split on"
+   },
+   {
+    "what": "docli show prints the whole 5.8k-token file, and there is no line-range option. To read one operation I had to sed the stored file directly. This is allowed (docli wrote it), but it works against the docli-only rule and is friction.",
+    "severity": "friction",
+    "command": "docli show petstore/_overview.md",
+    "output": "(no range flag in docli show --help)"
+   },
+   {
+    "what": "search reports a file and a line number only. For an OpenAPI file the section is just 'overview', so the hit gives no operation or schema name.",
+    "severity": "friction",
+    "command": "docli search findPetsByStatus --path .docli",
+    "output": "petstore/_overview.md \u00b7 5.8k tok\n    line 126: operationId: findPetsByStatus"
+   },
+   {
+    "what": "check says 'up to date' with no basis shown (no upstream version, ETag or hash), so the staleness result cannot be audited from the output.",
+    "severity": "friction",
+    "command": "docli check petstore --json",
+    "output": "\"status\": \"fresh\", \"message\": \"up to date (checked just now)\""
+   },
+   {
+    "what": "The add help says a whole-docs file is best and gives no guidance for API specs (YAML/JSON) that have no headings. This is why the split failed silently.",
+    "severity": "friction",
+    "command": "docli add --help",
+    "output": "Give it the page that holds the docs... a whole-docs file (/llms-full.txt, /docs.md) is best."
+   }
+  ],
+  "budget_kept": true
+ },
+ {
+  "source": "openapi",
+  "model": "sonnet",
+  "run": 1,
+  "answers": [
+   {
+    "question": "Which HTTP method and path finds pets by status?",
+    "answer": "GET /pet/findByStatus (operationId findPetsByStatus)",
+    "tokens_read": 400,
+    "file_read": ".docli/petstore/_overview.md lines 118-155"
+   },
+   {
+    "question": "What values does the status parameter accept, and its default?",
+    "answer": "enum: available, pending, sold; default: available (query param, required: true, explode: true)",
+    "tokens_read": 0,
+    "file_read": ".docli/petstore/_overview.md lines 118-155 (same read)"
+   },
+   {
+    "question": "Header name used by the api_key security scheme?",
+    "answer": "api_key (securitySchemes api_key: type apiKey, name: api_key, in: header)",
+    "tokens_read": 150,
+    "file_read": ".docli/petstore/_overview.md via grep, lines 849-852"
+   }
+  ],
+  "commands": [
+   "docli --help (exit 0)",
+   "docli add --help (exit 0)",
+   "docli add <openapi.yaml url> --name petstore (exit 0)",
+   "docli tree petstore (exit 0)",
+   "docli search findByStatus (exit 0)",
+   "docli show --help (exit 0)",
+   "docli check (exit 0)",
+   "docli sync (exit 0)",
+   "docli check (exit 0)"
+  ],
+  "add_ok": true,
+  "check_ok": true,
+  "check_output": "\u2713 petstore: up to date (checked just now)",
+  "sync_ok": true,
+  "sync_output": "\u2713 petstore up to date (v1, 1 files)",
+  "sync_changed_files": false,
+  "files": 1,
+  "problems": [
+   {
+    "what": "OpenAPI YAML is treated as markdown and not split: the whole spec is one 5.8k-token file (_overview.md), above the ~5000-token read budget, so tree/INDEX give no navigation. Had to use search (line number) plus sed/grep on the stored file instead of docli show.",
+    "severity": "wrong",
+    "command": "docli add <openapi.yaml> --name petstore",
+    "output": "\u2713 petstore v1 \u00b7 1 files \u00b7 5.8k tok \u2192 .docli/petstore ... parsed as markdown"
+   },
+   {
+    "what": "INDEX.md title is an unwieldy slug derived from the URL, and the only entry's summary is just 'openapi: 3.0.4'.",
+    "severity": "friction",
+    "output": "title: raw-githubusercontent-swagger-api-swagger-petstore-master-src-main-resources-openapi"
+   },
+   {
+    "what": "search reports only a line number, with no snippet and no docli command to read just those lines, so narrowing requires leaving docli.",
+    "severity": "friction",
+    "output": "line 120: /pet/findByStatus:"
+   },
+   {
+    "what": "My own checksum helper failed (zsh glob in eval), so the before checksum was the empty-input md5 (d41d8cd9...). The after checksum, run with the exact given command, is 43f3e6b300df2e9c4672c9b2543e6b3a. Because sync reported 'up to date' with nothing rewritten, the before value would be the same; not independently measured.",
+    "severity": "friction"
+   },
+   {
+    "what": "Neither check nor sync reported a version or changed-file count beyond 'up to date', which was the expected result for a freshly added source.",
+    "severity": "friction"
+   }
+  ],
+  "budget_kept": true
+ }
+]

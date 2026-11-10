@@ -1,6 +1,7 @@
 # Field test: can a small agent use docli cold?
 
-Date: 2026-11-10. Build under test: round 1 `fa2f080`, round 2 `328fc51` (the fixes below).
+Date: 2026-11-10. Build under test: round 1 `fa2f080`, round 2 `328fc51` (the fixes below), round 3
+`633ab00` (v0.1.0) with its fixes in the commit after it.
 
 ## What was tested
 
@@ -122,6 +123,88 @@ In round 2, every Datastar agent followed that hint to `docs.md`: 145 files, cov
 
 These are logged in the project's findings log for the next session.
 
+## Round 3: held-out sites
+
+Rounds 1 and 2 used the sites the fixes were made for. Round 3 used four sites docli had never seen,
+each a different kind, to check that the fixes generalise:
+
+| source | URL given | kind |
+|---|---|---|
+| tRPC | https://trpc.io/docs | Docusaurus; the docs start page is an overview |
+| Resend | https://resend.com/docs | Mintlify; serves `.md` pages and `/docs/llms-full.txt` |
+| Python datetime | https://docs.python.org/3/library/datetime.html | Sphinx static reference |
+| Petstore | the swagger-petstore `openapi.yaml` on GitHub | an OpenAPI spec (scored separately: docli has no OpenAPI parser) |
+
+The brief was the same, plus a second part: run `check`, then `sync`, and record a checksum of the
+doc files before and after. A run now also needs check and sync to succeed with no files changed.
+Each site had 2 Haiku runs and 1 Sonnet run (12 agents).
+
+| | round 1 | round 2 | round 3 (first pass) | round 3 (after fixes) |
+|---|---|---|---|---|
+| runs passed | 5 / 6 | 6 / 6 | 8 / 9 | **9 / 9** |
+| answers correct | 18 / 18 | 18 / 18 | 36 / 36 (OpenAPI included) | 3 / 3 rerun |
+| adds that needed `--force` | 0 | 0 | 6 of 12 | 0 |
+| blocker / wrong problems | 3 / 4 | 0 / 3 | 6 / 19 | 0 / 0 rerun |
+| largest read for one question | 1016 tok | 1000 tok | 1015 tok | 361 tok |
+| cost at list prices | n/a | ~$0.85 | $1.11 | +$0.24 |
+
+Round 3 cost $1.35 in total: 8 Haiku runs $0.15, 4 Sonnet runs $0.96, and the Sonnet rerun $0.24.
+The figures come from the subagent transcripts: 9.2M tokens, mostly cache reads.
+
+The answers were all right, but half the agents had to pass `--force` to get anything. Every check
+and sync left the doc files unchanged (same checksum before and after).
+
+### What went wrong in round 3
+
+1. **Coverage failed on good pages** (the cause of all 6 forced adds):
+   - Numbered headings like `### 1. Create a router` lost their number in the file title. This hit
+     trpc's `llms-full.txt` (38 "missing" digits) and Resend's (also in bold: `## **6. Verify**`).
+   - A markdown escape (`24\*60\*60`) counted as different words from the page's `24*60*60`. This
+     hit Python datetime.
+2. **Real text loss, caught by coverage:**
+   - A heading inside a quote (`> ## Documentation Index`, at the top of every Resend `.md` page) was
+     treated as a setext heading, and the quoted line under it was dropped.
+   - Code in a heading lost its underscores: `` ### `restricted_api_key` `` became `restrictedapikey`,
+     so a search for the error code found nothing.
+3. **A forced source could not sync.** A plain `sync` re-ran the coverage check and failed even when
+   nothing had changed, so every routine sync needed `--force`. `sync --force` then gave no warning.
+4. **Search line numbers were off** by the YAML header: "line 77" was line 90 in the stored file, so
+   `sed -n` / `grep -n` on the file landed in the wrong place.
+
+### What got fixed
+
+| # | fix | test |
+|---|---|---|
+| 1 | Coverage ignores a list or heading number (`1.`, `### 2.`, `## **6.`) and reads markdown escapes as the plain character. | `TestCoverageIgnoresMarkupEdges` |
+| 2 | Headings inside quotes and list items stay part of their block; heading titles keep code-span text and snake_case underscores. | `TestMarkdownHeadingTextAndQuotes` |
+| 3 | `sync` of a source whose text has not changed since the last sync passes without `--force`, and says "⚠ coverage check fails". Changed text still needs `--force`. | `TestInspectCoverageFailureExits1` |
+| 4 | Search line numbers count from the top of the stored file. | `TestFindAndSearch` |
+
+After the fixes, all five real sources from round 3 pass coverage without `--force`:
+
+| source | files | coverage before | after |
+|---|---|---|---|
+| trpc `llms-full.txt` | 431 | 38 missing | ok |
+| Resend `llms-full.txt` | 1263 | 143 missing, 16 extra | ok |
+| Resend `/docs` | 3 | 12 missing | ok |
+| Resend idempotency `.md` page | 6 | 12 missing | ok |
+| Python datetime | 17 | 1 missing, 3 extra | ok |
+
+The failed run (trpc on Sonnet) was rerun on the fixed build. It added `llms-full.txt` (431 files)
+with no `--force`, answered 3/3 at 361 tokens at most, and ran a plain `check` and `sync` with no
+changed files. It reported no blocker and no "wrong" problem.
+
+### Left for the owner (findings log)
+
+- **OpenAPI:** the petstore spec became one 5.8k-token file. Agents still answered 9/9 through
+  search, but one operation cannot be read cheaply. An `openapi` parser (one file per operation)
+  would be a new feature.
+- **An overview under `/docs` gets no suggestions.** `trpc.io/docs` gave 7 overview files and no hint
+  that `/llms-full.txt` exists, because landing-page detection skips docs paths.
+- Search shows one line per file and falls back to single words for a phrase. Sphinx `¶` links
+  cost tokens. Python's class reference is one 11k-token section (members are `<dt>`, not headings).
+  File names repeat a word (`httpbatchlink-options-options.md`) and mix case.
+
 ## Reproduce
 
 The run used the Workflow script described above. To score a round:
@@ -129,4 +212,7 @@ The run used the Workflow script described above. To score a round:
 ```sh
 python3 fieldtest/collect.py <journal.jsonl> > fieldtest/round2.json
 python3 fieldtest/score.py fieldtest/round2.json --md
+python3 fieldtest/score.py fieldtest/round3.json --md   # round 3; round3-rerun.json for the rerun
 ```
+
+Round 3's questions and verified answers are in `fieldtest/round3-answers.json`.

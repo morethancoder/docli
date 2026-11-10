@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -119,5 +120,31 @@ func TestBrowserRender(t *testing.T) {
 		if find(res.Doc.Root, h) == nil {
 			t.Errorf("missing %q after rendering", h)
 		}
+	}
+}
+
+// Round-3 field test: Resend's llms-full.txt has `code_names` in headings and
+// a "> ## Documentation Index" quote on every page.
+func TestMarkdownHeadingTextAndQuotes(t *testing.T) {
+	page := filepath.Join(t.TempDir(), "e.md")
+	_ = os.WriteFile(page, []byte("> ## Documentation Index\n> Fetch the complete index at: https://x.dev/llms.txt\n\n# Errors\n\n### `restricted_api_key`\n\n401\n\n### **Bold** and _em_ snake_case\n\ntext\n"), 0o644)
+	src := &config.Source{Name: "e", URL: "file://" + page}
+	src.Defaults()
+	res, err := Load(context.Background(), src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var titles []string
+	outline.Walk(res.Doc.Root, func(n *outline.Node) {
+		if n.Level > 0 {
+			titles = append(titles, n.Title)
+		}
+	})
+	want := []string{"restricted_api_key", "Bold and em snake_case"}
+	if strings.Join(titles, "|") != strings.Join(want, "|") {
+		t.Errorf("headings %q, want %q", titles, want)
+	}
+	if !strings.Contains(res.Doc.Root.Body, "Fetch the complete index") {
+		t.Errorf("quoted text lost: %q", res.Doc.Root.Body)
 	}
 }
