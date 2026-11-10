@@ -1,0 +1,4 @@
+bin/
+.docli/
+.playwright/
+.env

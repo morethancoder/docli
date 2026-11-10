@@ -1,0 +1,16 @@
+<!doctype html>
+<html><head><title>JS Docs</title></head>
+<body>
+<div id="app"></div>
+<script>
+// The whole page is built here, like a single-page docs app.
+var parts = ["<main><h1>JS Docs</h1><p>Built by JavaScript after load.</p>"];
+for (var i = 1; i <= 3; i++) {
+  parts.push("<h2 id='topic-" + i + "'>Topic " + i + "</h2>");
+  parts.push("<p>Topic " + i + " explains a rendered-only feature of the widget platform in a few sentences so the page has enough text.</p>");
+  parts.push("<p>More words about topic " + i + " so that the content is clearly more than an empty application shell.</p>");
+}
+parts.push("</main>");
+document.getElementById("app").innerHTML = parts.join("");
+</script>
+</body></html>
