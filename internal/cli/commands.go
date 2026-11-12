@@ -30,6 +30,10 @@ func newRoot(a *app) *cobra.Command {
 headers, one per item, in folders with an INDEX.md map at every level. It
 syncs only what changed, keeps versions, and checks for updates.
 
+Reads look in ./.docli first, then in the global store (~/.docli, or
+$DOCLI_HOME) for sources this project doesn't have. Writes go to ./.docli
+unless --global is given.
+
 Agents: pass --json for a fixed output format (see docs/json.md), read
 .docli/<source>/INDEX.md first, then open one file.`,
 		Version:       buildInfo().Version,
@@ -41,7 +45,8 @@ Agents: pass --json for a fixed output format (see docs/json.md), read
 	}
 	pf := root.PersistentFlags()
 	pf.BoolVar(&a.jsonOut, "json", false, "print the result as JSON (fixed format, no colour, no prompts)")
-	pf.StringVar(&a.path, "path", "", "docs folder to use (default: ./.docli)")
+	pf.StringVar(&a.path, "path", "", "docs folder to use (default: ./.docli, then the global store for reads)")
+	pf.BoolVar(&a.global, "global", false, "use the global store shared by all projects (~/.docli, or $DOCLI_HOME)")
 	pf.BoolVar(&a.latest, "latest", false, "check for updates first, sync if stale, then answer")
 	pf.BoolVar(&a.noCheck, "no-check", false, "skip the update check")
 	root.AddCommand(
@@ -54,44 +59,55 @@ Agents: pass --json for a fixed output format (see docs/json.md), read
 
 // ---- shared helpers ----
 
-// target picks the sources a read command works on: the named one, or all.
-func (a *app) target(name string) ([]string, error) {
+// target picks the sources a read command works on: the named one (project
+// copy first, then global), or all of them.
+func (a *app) target(name string) ([]srcRef, error) {
 	if name != "" {
-		if !a.store.Has(name) {
+		r, ok := a.lookup(name)
+		if !ok {
 			return nil, errf("not_found", "no source named %q (see `docli list`)", name)
 		}
-		return []string{name}, nil
+		return []srcRef{r}, nil
 	}
-	names, err := a.store.Sources()
+	refs, _, err := a.all()
 	if err != nil {
 		return nil, err
 	}
-	if len(names) == 0 {
-		return nil, errf("empty", "no docs in %s yet; add some with `docli add <url>`", a.store.Root)
+	if len(refs) == 0 {
+		return nil, a.emptyErr()
 	}
-	return names, nil
+	return refs, nil
 }
 
-// one picks a single source: the named one, or the only one there is.
-func (a *app) one(name string) (string, error) {
-	names, err := a.target(name)
+// one picks a single source: the named one, or the only one there is. With
+// no name, the project's sources come first: a global source is picked only
+// when the project has none.
+func (a *app) one(name string) (srcRef, error) {
+	refs, err := a.target(name)
 	if err != nil {
-		return "", err
+		return srcRef{}, err
 	}
-	if len(names) > 1 {
-		return "", errf("usage", "more than one source (%s); name one", strings.Join(names, ", "))
+	if name == "" {
+		if own := scoped(refs, a.store); len(own) > 0 {
+			refs = own
+		}
 	}
-	return names[0], nil
+	if len(refs) > 1 {
+		return srcRef{}, errf("usage", "more than one source (%s); name one", refNames(refs))
+	}
+	return refs[0], nil
 }
 
 // read prepares a read command: --latest first, then the background check.
-func (a *app) read(names []string) error {
+// --latest writes to a global source only when the command works on that one
+// source; over many sources it syncs the project's alone.
+func (a *app) read(refs []srcRef) error {
 	if a.latest && !a.noCheck {
-		if err := a.latestFor(names); err != nil {
+		if err := a.latestFor(a.latestRefs(refs)); err != nil {
 			return err
 		}
 	}
-	a.beginChecks(names)
+	a.beginChecks(refs)
 	return nil
 }
 
@@ -232,6 +248,7 @@ func (a *app) resolve(cmd *cobra.Command, arg string, r *ruleFlags) (*config.Sou
 // AddData is the --json data of add and of each sync entry.
 type AddData struct {
 	*store.Result
+	Scope       string              `json:"scope"`
 	Dir         string              `json:"dir"`
 	Parser      string              `json:"parser"`
 	Rendered    bool                `json:"rendered"`
@@ -294,7 +311,7 @@ func addData(a *app, res *store.Result, l *engine.Loaded) AddData {
 	if w == nil {
 		w = []string{}
 	}
-	return AddData{Result: res, Dir: a.store.Dir(res.Source), Parser: l.Result.Parser, Rendered: l.Result.Rendered,
+	return AddData{Result: res, Scope: a.scope, Dir: a.store.Dir(res.Source), Parser: l.Result.Parser, Rendered: l.Result.Rendered,
 		Note: l.Result.Note, Coverage: l.Plan.Coverage, Warnings: w}
 }
 
@@ -521,17 +538,30 @@ func cmdSync(a *app) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			names := args
 			if len(names) == 0 {
-				all, err := a.target("")
+				all, err := a.store.Sources()
 				if err != nil {
 					return err
 				}
 				names = all
+				if err := a.noteStaleGlobal(); err != nil {
+					return err
+				}
+				if len(names) == 0 && len(a.notes) == 0 {
+					if refs, _, err := a.all(); err != nil {
+						return err
+					} else if len(refs) == 0 {
+						return a.emptyErr()
+					}
+				}
+				if len(names) == 0 {
+					a.hint = "this project has no sources; global ones update with `docli sync --global`"
+				}
 			}
-			var out []AddData
+			out := []AddData{}
 			var lossy []bool
 			for _, n := range names {
 				if !a.store.Has(n) {
-					return errf("not_found", "no source named %q", n)
+					return a.notHere("sync", n)
 				}
 				src, err := a.store.Config(n)
 				if err != nil {
@@ -590,6 +620,8 @@ func limitList(s []string, n int) []string {
 // SourceInfo is one row of list.
 type SourceInfo struct {
 	Name     string    `json:"name"`
+	Scope    string    `json:"scope"`              // project or global
+	Shadowed bool      `json:"shadowed,omitempty"` // a project source of the same name hides this global copy
 	Title    string    `json:"title"`
 	URL      string    `json:"url"`
 	Dir      string    `json:"dir"`
@@ -605,30 +637,53 @@ func cmdList(a *app) *cobra.Command {
 		Short: "List the docs sources in this folder",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			names, err := a.store.Sources()
+			refs, shadowed, err := a.all()
 			if err != nil {
 				return err
 			}
-			if err := a.read(names); err != nil {
+			if err := a.read(refs); err != nil {
 				return err
 			}
 			out := []SourceInfo{}
-			for _, n := range names {
-				m, err := a.store.Manifest(n)
+			info := func(r srcRef, hidden bool) error {
+				m, err := r.St.Manifest(r.Name)
 				if err != nil {
 					return err
 				}
 				files, toks := m.Counts()
-				out = append(out, SourceInfo{Name: n, Title: m.Title, URL: m.URL, Dir: a.store.Dir(n),
-					Version: m.Version, Files: files, Tokens: toks, SyncedAt: m.SyncedAt})
+				out = append(out, SourceInfo{Name: r.Name, Scope: r.Scope, Shadowed: hidden, Title: m.Title, URL: m.URL,
+					Dir: r.St.Dir(r.Name), Version: m.Version, Files: files, Tokens: toks, SyncedAt: m.SyncedAt})
+				return nil
+			}
+			for _, r := range refs {
+				if err := info(r, false); err != nil {
+					return err
+				}
+			}
+			for _, r := range shadowed {
+				if err := info(r, true); err != nil {
+					return err
+				}
 			}
 			return a.emit(out, func(w io.Writer) {
 				if len(out) == 0 {
+					if a.fallback != nil {
+						fmt.Fprintf(w, "No docs in %s or in the global store %s yet. Add some with: docli add <url> (this project) or docli add --global <url> (all projects)\n",
+							a.rel(a.store.Root), a.fallback.Root)
+						return
+					}
 					fmt.Fprintf(w, "No docs in %s yet. Add some with: docli add <url>\n", a.rel(a.store.Root))
 					return
 				}
 				for _, s := range out {
-					fmt.Fprintf(w, "%s  %s\n  %s\n", styled(a, titleS, s.Name), s.Title, styled(a, dimS,
+					name := styled(a, titleS, s.Name)
+					switch {
+					case s.Shadowed:
+						name += " " + styled(a, dimS, "(global, hidden by the project copy)")
+					case s.Scope == scopeGlobal:
+						name += " " + styled(a, dimS, "(global)")
+					}
+					fmt.Fprintf(w, "%s  %s\n  %s\n", name, s.Title, styled(a, dimS,
 						fmt.Sprintf("v%d · %d files · %s · synced %s · %s", s.Version, s.Files, tok(s.Tokens), ago(s.SyncedAt), s.URL)))
 				}
 			})
@@ -721,14 +776,15 @@ func cmdTree(a *app) *cobra.Command {
 			if len(args) > 0 {
 				name = args[0]
 			}
-			n, err := a.one(name)
+			r, err := a.one(name)
 			if err != nil {
 				return err
 			}
-			if err := a.read([]string{n}); err != nil {
+			if err := a.read([]srcRef{r}); err != nil {
 				return err
 			}
-			m, err := a.store.Manifest(n)
+			n := r.Name
+			m, err := r.St.Manifest(n)
 			if err != nil {
 				return err
 			}
@@ -746,7 +802,13 @@ func cmdTree(a *app) *cobra.Command {
 			}
 			fillFolderTotals(items, m)
 			nodes := buildTree(items, prefix, depth)
-			return a.emit(nodes, func(w io.Writer) { printTree(a, w, n+"/"+prefix, nodes) })
+			return a.emit(nodes, func(w io.Writer) {
+				root := n + "/" + prefix
+				if r.Scope == scopeGlobal {
+					root += " (global)"
+				}
+				printTree(a, w, root, nodes)
+			})
 		},
 	}
 	cmd.Flags().IntVar(&depth, "depth", 2, "folder levels to show")
@@ -800,6 +862,7 @@ func printTree(a *app, w io.Writer, root string, nodes []*PlanNode) {
 // ShowData is the --json data of show.
 type ShowData struct {
 	Source    string `json:"source"`
+	Scope     string `json:"scope"` // project or global: the store the file came from
 	Path      string `json:"path"`
 	File      string `json:"file"`
 	Title     string `json:"title"`
@@ -829,38 +892,53 @@ source: ` + "`docli show datastar data-on`" + `.`,
 				}
 				source, args = args[0], args[1:]
 			}
-			names, err := a.target(source)
+			refs, err := a.target(source)
 			if err != nil {
 				return err
 			}
-			if a.latest && !a.noCheck {
+			latest := a.latest && !a.noCheck
+			if latest {
 				// Sync first, so a section that is new upstream can be found.
-				if err := a.latestFor(names); err != nil {
+				if err := a.latestFor(a.latestRefs(refs)); err != nil {
 					return err
 				}
 				a.latest = false
 			}
-			hit, err := a.store.Find(args[0], source)
+			hit, r, err := a.find(args[0], source)
 			if err != nil {
 				return err
 			}
+			if latest && source == "" && r.Scope == scopeGlobal && len(refs) > 1 {
+				// The answer came from a global source left out above: sync
+				// that one copy, then look again.
+				if err := a.latestFor([]srcRef{r}); err != nil {
+					return err
+				}
+				if hit, r, err = a.find(args[0], source); err != nil {
+					return err
+				}
+			}
 			// Check only the source the answer came from.
-			if err := a.read([]string{hit.Source}); err != nil {
+			if err := a.read([]srcRef{r}); err != nil {
 				return err
 			}
-			data, err := a.store.ReadFile(hit.Source, hit.Path)
+			data, err := r.St.ReadFile(hit.Source, hit.Path)
 			if err != nil {
 				return err
 			}
 			h, body, _ := store.SplitFile(data)
-			d := ShowData{Source: hit.Source, Path: hit.Path, File: filepath.Join(a.store.Dir(hit.Source), filepath.FromSlash(hit.Path)),
+			d := ShowData{Source: hit.Source, Scope: r.Scope, Path: hit.Path, File: filepath.Join(r.St.Dir(hit.Source), filepath.FromSlash(hit.Path)),
 				Title: h.Title, Kind: h.Kind, Tokens: h.Tokens, Bytes: len(data), Version: h.Version, SourceURL: h.Source, Content: string(data)}
 			return a.emit(d, func(w io.Writer) {
 				if !a.tty || raw {
 					w.Write(data)
 					return
 				}
-				fmt.Fprintf(w, "%s  %s\n", styled(a, dimS, hit.Source+"/"+hit.Path),
+				where := hit.Source + "/" + hit.Path
+				if r.Scope == scopeGlobal {
+					where += " (global)"
+				}
+				fmt.Fprintf(w, "%s  %s\n", styled(a, dimS, where),
 					styled(a, dimS, fmt.Sprintf("%s · %s · %s", h.Kind, tok(h.Tokens), h.Source)))
 				fmt.Fprint(w, renderMarkdown("# "+h.Title+"\n\n"+body, termWidth()))
 			})
@@ -898,23 +976,20 @@ func cmdSearch(a *app) *cobra.Command {
 		Short: "Find sections by name, then by content",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			names, err := a.target(source)
+			refs, err := a.target(source)
 			if err != nil {
 				return err
 			}
-			if err := a.read(names); err != nil {
+			if err := a.read(refs); err != nil {
 				return err
 			}
 			q := strings.Join(args, " ")
-			ms, err := a.store.Search(q, source, limit)
+			ms, err := a.search(q, refs, limit)
 			if err != nil {
 				return err
 			}
-			if ms == nil {
-				ms = []store.Match{}
-			}
 			if len(ms) == 0 {
-				a.hint = a.missHint(q, names)
+				a.hint = a.missHint(q, refs)
 			}
 			return a.emit(ms, func(w io.Writer) {
 				if len(ms) == 0 {
@@ -922,8 +997,11 @@ func cmdSearch(a *app) *cobra.Command {
 					return
 				}
 				for _, m := range ms {
-					fmt.Fprintf(w, "%s  %s  %s\n", styled(a, boldS, m.Title), styled(a, kindS, m.Kind),
-						styled(a, dimS, fmt.Sprintf("%s/%s · %s", m.Source, m.Path, tok(m.Tokens))))
+					where := fmt.Sprintf("%s/%s · %s", m.Source, m.Path, tok(m.Tokens))
+					if m.Scope == scopeGlobal {
+						where += " · global"
+					}
+					fmt.Fprintf(w, "%s  %s  %s\n", styled(a, boldS, m.Title), styled(a, kindS, m.Kind), styled(a, dimS, where))
 					if m.Snippet != "" {
 						fmt.Fprintf(w, "    %s\n", styled(a, dimS, fmt.Sprintf("line %d: ", m.Line))+m.Snippet)
 					}
@@ -936,13 +1014,49 @@ func cmdSearch(a *app) *cobra.Command {
 	return cmd
 }
 
+// SearchHit is one search result and the store it came from.
+type SearchHit struct {
+	store.Match
+	Scope string `json:"scope"`
+}
+
+// search runs a query over refs, store by store: project hits first (ranked),
+// then global hits (ranked). limit applies to the combined list.
+func (a *app) search(q string, refs []srcRef, limit int) ([]SearchHit, error) {
+	out := []SearchHit{}
+	for _, st := range []*store.Store{a.store, a.fallback} {
+		if st == nil {
+			continue
+		}
+		names := projectNames(refs, st)
+		if len(names) == 0 {
+			continue
+		}
+		ms, err := st.SearchIn(q, names, 0)
+		if err != nil {
+			return nil, err
+		}
+		scope := a.scope
+		if st == a.fallback {
+			scope = scopeGlobal
+		}
+		for _, m := range ms {
+			out = append(out, SearchHit{Match: m, Scope: scope})
+		}
+	}
+	if limit > 0 && len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
 // missHint says where else a term may be when a search finds nothing: each
 // source is one page, so the term may be on a page that was never added.
-func (a *app) missHint(q string, names []string) string {
+func (a *app) missHint(q string, refs []srcRef) string {
 	var pages []string
-	for _, n := range names {
-		if src, err := a.store.Config(n); err == nil {
-			pages = append(pages, n+" ("+src.URL+")")
+	for _, r := range refs {
+		if src, err := r.St.Config(r.Name); err == nil {
+			pages = append(pages, r.Name+" ("+src.URL+")")
 		}
 	}
 	return fmt.Sprintf("nothing here mentions %q. Only these pages are downloaded: %s. The term may be on another page of the site; add it with `docli add <url>`",
@@ -970,21 +1084,22 @@ func cmdDiff(a *app) *cobra.Command {
 			if len(args) > 0 {
 				name = args[0]
 			}
-			n, err := a.one(name)
+			r, err := a.one(name)
 			if err != nil {
 				return err
 			}
-			if err := a.read([]string{n}); err != nil {
+			if err := a.read([]srcRef{r}); err != nil {
 				return err
 			}
+			n := r.Name
 			if since == "" {
-				m, err := a.store.Manifest(n)
+				m, err := r.St.Manifest(n)
 				if err != nil {
 					return err
 				}
 				since = fmt.Sprint(max(m.Version-1, 0))
 			}
-			d, err := a.store.Diff(n, since)
+			d, err := r.St.Diff(n, since)
 			if err != nil {
 				return errf("usage", "%v", err)
 			}
@@ -1051,13 +1166,14 @@ func cmdChangelog(a *app) *cobra.Command {
 			if len(args) > 0 {
 				name = args[0]
 			}
-			n, err := a.one(name)
+			r, err := a.one(name)
 			if err != nil {
 				return err
 			}
-			if err := a.read([]string{n}); err != nil {
+			if err := a.read([]srcRef{r}); err != nil {
 				return err
 			}
+			n := r.Name
 			for _, d := range []string{since, until} {
 				if d != "" {
 					if _, err := time.Parse("2006-01-02", d); err != nil {
@@ -1065,7 +1181,7 @@ func cmdChangelog(a *app) *cobra.Command {
 					}
 				}
 			}
-			all, err := a.store.Changelog(n)
+			all, err := r.St.Changelog(n)
 			if err != nil {
 				return err
 			}
@@ -1077,7 +1193,7 @@ func cmdChangelog(a *app) *cobra.Command {
 			}
 			return a.emit(out, func(w io.Writer) {
 				if len(out) == 0 {
-					src, _ := a.store.Config(n)
+					src, _ := r.St.Config(n)
 					if src != nil && src.Changelog == "" {
 						fmt.Fprintf(w, "%s has no changelog section set (changelog: in source.yaml)\n", n)
 						return
@@ -1108,27 +1224,31 @@ func cmdCheck(a *app) *cobra.Command {
 		Use:   "check [name...]",
 		Short: "Check now whether sources changed upstream (does not sync)",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			names := args
-			if len(names) == 0 {
+			var refs []srcRef
+			if len(args) == 0 {
 				all, err := a.target("")
 				if err != nil {
 					return err
 				}
-				names = all
+				refs = all
 			}
-			notes := []StaleNote{}
-			for _, n := range names {
-				if !a.store.Has(n) {
+			for _, n := range args {
+				r, ok := a.lookup(n)
+				if !ok {
 					return errf("not_found", "no source named %q", n)
 				}
-				st, err := engine.Check(context.Background(), a.store, n)
+				refs = append(refs, r)
+			}
+			notes := []StaleNote{}
+			for _, r := range refs {
+				st, err := engine.Check(context.Background(), r.St, r.Name)
 				if st == nil {
 					if background {
 						continue
 					}
 					return err
 				}
-				note, _ := noteFor(n, st)
+				note, _ := noteFor(r, st)
 				notes = append(notes, note)
 			}
 			if background {
@@ -1140,7 +1260,11 @@ func cmdCheck(a *app) *cobra.Command {
 					if n.Status != "fresh" {
 						mark = styled(a, warnS, "⚠")
 					}
-					fmt.Fprintf(w, "%s %s: %s\n", mark, styled(a, boldS, n.Source), n.Message)
+					name := styled(a, boldS, n.Source)
+					if n.Scope == scopeGlobal {
+						name += styled(a, dimS, " (global)")
+					}
+					fmt.Fprintf(w, "%s %s: %s\n", mark, name, n.Message)
 				}
 			})
 		},
@@ -1158,8 +1282,11 @@ func cmdRemove(a *app) *cobra.Command {
 		Short: "Delete a source's docs and record",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if !a.store.Has(args[0]) {
+				return a.notHere("remove", args[0])
+			}
 			if err := a.store.Remove(args[0]); err != nil {
-				return errf("not_found", "%v", err)
+				return err
 			}
 			return a.emit(map[string]string{"removed": args[0]}, func(w io.Writer) {
 				fmt.Fprintf(w, "removed %s\n", args[0])
@@ -1186,18 +1313,26 @@ func cmdBrowse(a *app) *cobra.Command {
 			if len(args) > 0 {
 				name = args[0]
 			}
-			names, err := a.target(name)
+			refs, err := a.target(name)
 			if err != nil {
 				return err
 			}
-			if err := a.read(names); err != nil {
+			if err := a.read(refs); err != nil {
 				return err
 			}
 			start := ""
-			if len(names) == 1 {
-				start = names[0]
+			if len(refs) == 1 {
+				start = refs[0].Name
 			}
-			if err := tui.Run(a.store, start); err != nil {
+			all, _, err := a.all()
+			if err != nil {
+				return err
+			}
+			sources := make([]tui.Source, len(all))
+			for i, r := range all {
+				sources[i] = tui.Source{Name: r.Name, Global: r.Scope == scopeGlobal, Store: r.St}
+			}
+			if err := tui.Run(sources, start); err != nil {
 				return err
 			}
 			a.printNotes(a.finishChecks())

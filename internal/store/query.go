@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"regexp"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -135,22 +136,33 @@ func (e *AmbiguousError) Error() string {
 // the source prefix), a folder (gives its INDEX.md), or a section title
 // ("sendMessage", "Recent changes"). source limits the search when set.
 func (s *Store) Find(ref, source string) (Hit, error) {
-	names, err := s.Sources()
-	if err != nil {
-		return Hit{}, err
-	}
-	ref = strings.Trim(strings.TrimSpace(ref), "/")
-	if src, rest, ok := strings.Cut(ref, "/"); ok && source == "" && s.Has(src) {
-		source, ref = src, rest
-	} else if source == "" && s.Has(ref) {
-		source, ref = ref, ""
-	}
 	if source != "" {
 		if !s.Has(source) {
 			return Hit{}, fmt.Errorf("no source named %q", source)
 		}
-		names = []string{source}
+		return s.find(strings.Trim(strings.TrimSpace(ref), "/"), []string{source})
 	}
+	names, err := s.Sources()
+	if err != nil {
+		return Hit{}, err
+	}
+	return s.FindIn(ref, names)
+}
+
+// FindIn is Find over the given sources only. A "<source>/" prefix, or a
+// bare source name, is understood when that source is one of names.
+func (s *Store) FindIn(ref string, names []string) (Hit, error) {
+	ref = strings.Trim(strings.TrimSpace(ref), "/")
+	if src, rest, ok := strings.Cut(ref, "/"); ok && slices.Contains(names, src) {
+		return s.find(rest, []string{src})
+	}
+	if slices.Contains(names, ref) {
+		return s.find("", []string{ref})
+	}
+	return s.find(ref, names)
+}
+
+func (s *Store) find(ref string, names []string) (Hit, error) {
 	// Tiers: exact path, exact title, case-insensitive title, path suffix.
 	tiers := make([][]Hit, 4)
 	for _, n := range names {
@@ -207,10 +219,6 @@ type Match struct {
 // Search finds files whose name or title matches, then files whose text
 // contains the query (case-insensitive). Name matches rank first.
 func (s *Store) Search(query, source string, limit int) ([]Match, error) {
-	q := strings.ToLower(strings.TrimSpace(query))
-	if q == "" {
-		return nil, errors.New("empty query")
-	}
 	names, err := s.Sources()
 	if err != nil {
 		return nil, err
@@ -220,6 +228,15 @@ func (s *Store) Search(query, source string, limit int) ([]Match, error) {
 			return nil, fmt.Errorf("no source named %q", source)
 		}
 		names = []string{source}
+	}
+	return s.SearchIn(query, names, limit)
+}
+
+// SearchIn is Search over the given sources only.
+func (s *Store) SearchIn(query string, names []string, limit int) ([]Match, error) {
+	q := strings.ToLower(strings.TrimSpace(query))
+	if q == "" {
+		return nil, errors.New("empty query")
 	}
 	sq, words := squash(q), strings.Fields(q)
 	var out []Match

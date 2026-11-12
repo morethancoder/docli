@@ -35,6 +35,15 @@ Never fetch or read a whole docs page into context; ask docli for one piece.
 
 Links inside files are relative paths to other files, so follow them with Read.
 
+## Two stores
+
+- ` + "`./.docli`" + ` holds this project's docs. ` + "`~/.docli`" + ` (or ` + "`$DOCLI_HOME`" + `) holds docs shared by
+  all projects.
+- Reads look in the project first, then in the global store for sources the project doesn't have.
+  A name in both resolves to the project copy. Results carry ` + "`\"scope\": \"project\"`" + ` or ` + "`\"global\"`" + `.
+- Writes (` + "`add`, `sync`, `remove`" + `) touch only the project unless you pass ` + "`--global`" + `. Add docs
+  that many projects use with ` + "`docli add --global <url>`" + `; update them with ` + "`docli sync --global`" + `.
+
 ## Keep it current
 
 - Every --json reply has a ` + "`stale`" + ` list. If a source shows ` + "`\"status\": \"stale\"`" + `,
@@ -71,11 +80,14 @@ func cmdSkill(a *app) *cobra.Command {
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if out == "" {
-				wd, err := os.Getwd()
+				base, err := os.Getwd()
+				if a.global {
+					base, err = os.UserHomeDir() // the user-level skill, for every project
+				}
 				if err != nil {
 					return err
 				}
-				out = filepath.Join(wd, ".claude", "skills", "docli", "SKILL.md")
+				out = filepath.Join(base, ".claude", "skills", "docli", "SKILL.md")
 			}
 			if old, err := os.ReadFile(out); err == nil && string(old) != SkillText && !force {
 				return errf("usage", "%s exists and differs; pass --force to replace it", a.rel(out))
@@ -91,7 +103,7 @@ func cmdSkill(a *app) *cobra.Command {
 			})
 		},
 	}
-	cmd.Flags().StringVar(&out, "out", "", "file to write (default: ./.claude/skills/docli/SKILL.md)")
+	cmd.Flags().StringVar(&out, "out", "", "file to write (default: ./.claude/skills/docli/SKILL.md, or ~/.claude/skills/docli/SKILL.md with --global)")
 	cmd.Flags().BoolVar(&force, "force", false, "replace an existing, different file")
 	return cmd
 }

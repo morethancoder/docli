@@ -4,6 +4,7 @@ package tui
 
 import (
 	"fmt"
+	"slices"
 	"sort"
 	"strings"
 
@@ -17,9 +18,18 @@ import (
 	"github.com/morethancoder/docli/internal/store"
 )
 
-// Run starts the browser. start is a source name, or "" for all sources.
-func Run(st *store.Store, start string) error {
-	m, err := newModel(st, start)
+// Source is one browsable source and the store it lives in. Global marks a
+// source from the global store shared by all projects.
+type Source struct {
+	Name   string
+	Global bool
+	Store  *store.Store
+}
+
+// Run starts the browser over sources (project ones first). start is a
+// source name, or "" for all sources.
+func Run(sources []Source, start string) error {
+	m, err := newModel(sources, start)
 	if err != nil {
 		return err
 	}
@@ -58,8 +68,7 @@ const (
 )
 
 type model struct {
-	st      *store.Store
-	sources []string
+	sources []Source
 	stack   []level
 	list    list.Model
 	view    viewport.Model
@@ -73,12 +82,8 @@ type model struct {
 	err     string
 }
 
-func newModel(st *store.Store, start string) (*model, error) {
-	names, err := st.Sources()
-	if err != nil {
-		return nil, err
-	}
-	m := &model{st: st, sources: names, dark: true, w: 100, h: 30}
+func newModel(sources []Source, start string) (*model, error) {
+	m := &model{sources: sources, dark: true, w: 100, h: 30}
 	d := list.NewDefaultDelegate()
 	m.list = list.New(nil, d, m.w, m.h-2)
 	m.list.DisableQuitKeybindings()
@@ -105,14 +110,17 @@ func (m *model) Init() tea.Cmd { return tea.RequestBackgroundColor }
 
 func (m *model) sourcesLevel() level {
 	var items []list.Item
-	for _, n := range m.sources {
-		mf, err := m.st.Manifest(n)
+	for _, s := range m.sources {
+		mf, err := s.Store.Manifest(s.Name)
 		if err != nil {
 			continue
 		}
 		files, toks := mf.Counts()
-		items = append(items, item{source: n, title: n, isSource: true,
-			desc: fmt.Sprintf("%s · v%d · %d files · %s", mf.Title, mf.Version, files, tok(toks))})
+		desc := fmt.Sprintf("%s · v%d · %d files · %s", mf.Title, mf.Version, files, tok(toks))
+		if s.Global {
+			desc = "global · " + desc
+		}
+		items = append(items, item{source: s.Name, title: s.Name, isSource: true, desc: desc})
 	}
 	return level{title: "docli · sources", items: items}
 }
@@ -120,7 +128,11 @@ func (m *model) sourcesLevel() level {
 // folderLevel lists one folder of a source. dir is "" for the top or
 // "available-methods/" for a sub-folder.
 func (m *model) folderLevel(source, dir string) (level, error) {
-	mf, err := m.st.Manifest(source)
+	st, err := m.store(source)
+	if err != nil {
+		return level{}, err
+	}
+	mf, err := st.Manifest(source)
 	if err != nil {
 		return level{}, err
 	}
@@ -291,7 +303,7 @@ func (m *model) updateSearch(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		if q == "" {
 			return m, nil
 		}
-		hits, err := m.st.Search(q, m.currentSource(), 100)
+		hits, err := m.search(q, m.currentSource(), 100)
 		if err != nil {
 			m.err = err.Error()
 			return m, nil
@@ -310,6 +322,52 @@ func (m *model) updateSearch(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 	m.input, cmd = m.input.Update(msg)
 	return m, cmd
+}
+
+// store is the store a source lives in.
+func (m *model) store(name string) (*store.Store, error) {
+	for _, s := range m.sources {
+		if s.Name == name {
+			return s.Store, nil
+		}
+	}
+	return nil, fmt.Errorf("no source named %q", name)
+}
+
+// search runs a query in one source, or in all of them store by store
+// (project hits first), keeping at most limit hits.
+func (m *model) search(q, source string, limit int) ([]store.Match, error) {
+	if source != "" {
+		st, err := m.store(source)
+		if err != nil {
+			return nil, err
+		}
+		return st.Search(q, source, limit)
+	}
+	var out []store.Match
+	var stores []*store.Store
+	for _, s := range m.sources {
+		if !slices.Contains(stores, s.Store) {
+			stores = append(stores, s.Store)
+		}
+	}
+	for _, st := range stores {
+		var names []string
+		for _, s := range m.sources {
+			if s.Store == st {
+				names = append(names, s.Name)
+			}
+		}
+		hits, err := st.SearchIn(q, names, limit)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, hits...)
+	}
+	if limit > 0 && len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
 }
 
 // currentSource is the source being browsed, or "" at the sources level.
@@ -348,7 +406,12 @@ func (m *model) open() tea.Cmd {
 		}
 		m.push(lv)
 	default:
-		data, err := m.st.ReadFile(it.source, it.path)
+		st, err := m.store(it.source)
+		if err != nil {
+			m.err = err.Error()
+			return nil
+		}
+		data, err := st.ReadFile(it.source, it.path)
 		if err != nil {
 			m.err = err.Error()
 			return nil
@@ -365,12 +428,17 @@ func (m *model) open() tea.Cmd {
 }
 
 func (m *model) openDiff(src string) {
-	mf, err := m.st.Manifest(src)
+	st, err := m.store(src)
 	if err != nil {
 		m.err = err.Error()
 		return
 	}
-	d, err := m.st.Diff(src, fmt.Sprint(max(mf.Version-1, 0)))
+	mf, err := st.Manifest(src)
+	if err != nil {
+		m.err = err.Error()
+		return
+	}
+	d, err := st.Diff(src, fmt.Sprint(max(mf.Version-1, 0)))
 	if err != nil {
 		m.err = err.Error()
 		return

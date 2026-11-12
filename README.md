@@ -67,6 +67,8 @@ docli can't find it.
   answers.
 - **Reads changelogs.** `docli changelog` lists a source's dated changelog entries (for example,
   Telegram's "Recent changes").
+- **Shares docs across projects.** `docli add --global <url>` stores docs in `~/.docli` (or
+  `$DOCLI_HOME`). Every project can read them, and they stay local.
 
 ## Commands
 
@@ -74,7 +76,7 @@ docli can't find it.
 add <url|file>      download a source and split it into indexed files
 inspect <url|name>  preview the split (tree, sizes, coverage) without writing
 sync [name...]      re-fetch and rewrite only what changed
-list                sources in this folder
+list                sources in this project and the global store
 tree [source]       folders and files of a source
 show <ref>          one section by title, path or folder (folder → its INDEX)
 search <query>      by name first, then by content
@@ -88,7 +90,20 @@ version             version, commit, build date and platform
 update              replace docli with the latest release (--check only reports)
 ```
 
-Global flags: `--json`, `--path <dir>` (default `./.docli`), `--latest`, `--no-check`.
+Global flags: `--json`, `--path <dir>` (default `./.docli`), `--global`, `--latest`, `--no-check`.
+
+### Project and global docs
+
+- `./.docli` holds the project's docs. The global store, `~/.docli` (or `$DOCLI_HOME`, an absolute
+  path or one starting with `~/`), holds docs that many projects use.
+- Reads (`show`, `search`, `tree`, `diff`, `changelog`, `check`, `browse`, `list`) look in the project
+  first, then in the global store for sources the project doesn't have. If a name is in both stores,
+  the project copy is used, and `list` marks the global copy as shadowed.
+- Writes (`add`, `sync`, `remove`, `inspect --save`, `skill`) touch only the project unless
+  `--global` is given. `docli sync` with no name syncs the project's sources and names any stale
+  global ones. `--latest` syncs a global source only when the read works on that one source (named,
+  or the source of a `show` answer); over many sources it syncs the project's alone.
+- `--path` names one folder and turns the fallback off. `--global` and `--path` can't be used together.
 
 ## For agents
 
@@ -123,7 +138,9 @@ A good read loop:
 2. `docli show <name> --json`, or open the file directly.
 3. If `stale` reports `stale`, run `docli sync <source>`, or repeat the read with `--latest`.
 
-`docli skill` writes `.claude/skills/docli/SKILL.md`, which teaches Claude Code this workflow.
+`docli skill` writes `.claude/skills/docli/SKILL.md`, which teaches Claude Code this workflow
+(`docli skill --global` writes `~/.claude/skills/docli/SKILL.md`, for every project). Results of
+`list`, `show` and `search` carry `scope`: `project` or `global`.
 
 ## Tuning a source
 

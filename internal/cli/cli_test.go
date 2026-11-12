@@ -50,11 +50,13 @@ func (d *docServer) set(body string, delay time.Duration) {
 }
 
 type env struct {
-	t       *testing.T
-	root    string
-	srv     *httptest.Server
-	docs    *docServer
-	spawned [][]string
+	t          *testing.T
+	root       string
+	srv        *httptest.Server
+	docs       *docServer
+	global     string // $DOCLI_HOME: the global store, never the real ~/.docli
+	spawned    [][]string
+	spawnRoots []string
 }
 
 func newEnv(t *testing.T) *env {
@@ -66,19 +68,29 @@ func newEnv(t *testing.T) *env {
 	d := &docServer{body: string(text)}
 	srv := httptest.NewServer(d)
 	t.Cleanup(srv.Close)
-	return &env{t: t, root: filepath.Join(t.TempDir(), ".docli"), srv: srv, docs: d}
+	global := filepath.Join(t.TempDir(), "global-docli")
+	t.Setenv("DOCLI_HOME", global)
+	return &env{t: t, root: filepath.Join(t.TempDir(), ".docli"), srv: srv, docs: d, global: global}
 }
 
 // run executes docli with --path set and returns the exit code, stdout and
 // stderr.
 func (e *env) run(args ...string) (int, string, string) {
 	e.t.Helper()
+	return e.exec(append(args, "--path", e.root)...)
+}
+
+// exec executes docli with args as given (no --path), so the project store
+// is ./.docli in the current folder and reads fall back to $DOCLI_HOME.
+func (e *env) exec(args ...string) (int, string, string) {
+	e.t.Helper()
 	var out, errOut bytes.Buffer
-	a := &app{out: &out, errOut: &errOut, spawn: func(names []string) error {
+	a := &app{out: &out, errOut: &errOut, spawn: func(root string, names []string) error {
 		e.spawned = append(e.spawned, names)
+		e.spawnRoots = append(e.spawnRoots, root)
 		return nil
 	}}
-	code := execute(a, append(args, "--path", e.root))
+	code := execute(a, args)
 	return code, out.String(), errOut.String()
 }
 

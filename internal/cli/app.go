@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 
 	"github.com/charmbracelet/x/term"
 	"github.com/spf13/cobra"
@@ -26,17 +25,21 @@ type app struct {
 	hint    string // set by a command before emit
 	jsonOut bool
 	path    string
+	global  bool
 	latest  bool
 	noCheck bool
 
 	out, errOut io.Writer
-	tty         bool // stdout is a terminal: styled output
-	store       *store.Store
+	tty         bool         // stdout is a terminal: styled output
+	store       *store.Store // where writes go: ./.docli, --path, or the global store with --global
+	scope       string       // scope of store: project or global
+	fallback    *store.Store // global store that reads fall back to; nil with --path or --global
 	command     string
 	checks      *checker
-	spawn       func(names []string) error // starts the background check; tests replace it
-	newUpdater  func() *update.Client      // tests point update at a fake release server
-	exePath     string                     // tests: the binary update replaces
+	notes       []StaleNote                             // extra notes a command adds (sync: stale global sources)
+	spawn       func(root string, names []string) error // starts the background check; tests replace it
+	newUpdater  func() *update.Client                   // tests point update at a fake release server
+	exePath     string                                  // tests: the binary update replaces
 }
 
 // Envelope is the fixed --json shape of every command (see docs/json.md).
@@ -91,17 +94,9 @@ func codeOf(err error) *Error {
 
 func (a *app) setup(cmd *cobra.Command) error {
 	a.command = cmd.Name()
-	root := a.path
-	if root == "" {
-		wd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
-		root = filepath.Join(wd, store.DirName)
-	} else if abs, err := filepath.Abs(root); err == nil {
-		root = abs
+	if err := a.openStores(); err != nil {
+		return err
 	}
-	a.store = store.Open(root)
 	a.tty = !a.jsonOut && isTerminal(os.Stdout)
 	if os.Getenv("DOCLI_NO_CHECK") == "1" {
 		a.noCheck = true
@@ -113,7 +108,7 @@ func isTerminal(f *os.File) bool { return term.IsTerminal(f.Fd()) }
 
 // emit prints a command's result: the JSON envelope, or the human form.
 func (a *app) emit(data any, human func(w io.Writer)) error {
-	notes := a.finishChecks()
+	notes := append(a.finishChecks(), a.notes...)
 	if a.jsonOut {
 		return writeJSON(a.out, Envelope{OK: true, Command: a.command, Data: data, Stale: notes, Hint: a.hint})
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"testing"
 
@@ -67,7 +68,7 @@ func TestBrowse(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	m, err := newModel(st, "")
+	m, err := newModel([]Source{{Name: "sdk", Store: st}}, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,5 +124,51 @@ func TestBrowse(t *testing.T) {
 		t.Error("q did not quit")
 	} else if _, ok := cmd().(tea.QuitMsg); !ok {
 		t.Error("q returned a command that is not quit")
+	}
+}
+
+// TestSearchAcrossStores: with a project and a global store, search covers
+// each store's own sources only (so a shadowed global copy is skipped), and
+// lists project hits first.
+func TestSearchAcrossStores(t *testing.T) {
+	p, _ := filepath.Abs(filepath.Join("..", "..", "testdata", "llms.md"))
+	open := func(names ...string) *store.Store {
+		st := store.Open(filepath.Join(t.TempDir(), store.DirName))
+		for _, n := range names {
+			src := &config.Source{Name: n, URL: "file://" + p, FileLevel: 3}
+			src.Defaults()
+			if err := st.SaveConfig(src); err != nil {
+				t.Fatal(err)
+			}
+			if _, _, err := engine.Sync(context.Background(), st, src, false); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return st
+	}
+	proj, glob := open("sdk"), open("sdk", "gsdk") // the global sdk is shadowed
+	m, err := newModel([]Source{{Name: "sdk", Store: proj}, {Name: "gsdk", Global: true, Store: glob}}, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	hits, err := m.search("createWidget", "", 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got []string
+	for _, h := range hits {
+		got = append(got, h.Source)
+	}
+	// Want sdk… then gsdk…, the same number of each (one copy of llms.md per
+	// searched source; the shadowed global sdk adds none).
+	i := 0
+	for i < len(got) && got[i] == "sdk" {
+		i++
+	}
+	if i == 0 || 2*i != len(got) || slices.ContainsFunc(got[i:], func(s string) bool { return s != "gsdk" }) {
+		t.Errorf("want project hits, then the same hits from gsdk only: %v", got)
+	}
+	if hits, _ := m.search("createWidget", "", 1); len(hits) != 1 || hits[0].Source != "sdk" {
+		t.Errorf("limit 1: %v", hits)
 	}
 }
