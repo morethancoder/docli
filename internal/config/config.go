@@ -183,12 +183,18 @@ func Save(path string, s *Source) error {
 	return os.WriteFile(path, append([]byte(head), b...), 0o644)
 }
 
+var notName = regexp.MustCompile(`[^a-z0-9-]+`)
+
 // NameFromURL derives a short source name: host without www/docs/core plus
-// the path, kebab-cased.
+// the path, kebab-cased. A local file is named by its file name alone (or its
+// folder, for index/README files), so the name never carries the local path.
 func NameFromURL(raw string) string {
 	u, err := url.Parse(raw)
 	if err != nil {
 		return "docs"
+	}
+	if u.Scheme == "file" {
+		return fileName(u.Path)
 	}
 	host := u.Hostname()
 	for _, p := range []string{"www.", "docs.", "core.", "developer.", "developers."} {
@@ -204,9 +210,27 @@ func NameFromURL(raw string) string {
 			parts = append(parts, seg)
 		}
 	}
-	name := strings.ToLower(strings.Join(parts, "-"))
-	name = regexp.MustCompile(`[^a-z0-9-]+`).ReplaceAllString(name, "-")
-	return strings.Trim(name, "-")
+	return kebab(strings.Join(parts, "-"))
+}
+
+// fileName names a local file source: its base name without the extension,
+// or its folder's name when the file is index/README.
+func fileName(path string) string {
+	base := filepath.Base(path)
+	name := kebab(strings.TrimSuffix(base, filepath.Ext(base)))
+	if name == "index" || name == "readme" {
+		if dir := kebab(filepath.Base(filepath.Dir(path))); dir != "" && dir != "-" {
+			return dir
+		}
+	}
+	if name == "" {
+		return "docs"
+	}
+	return name
+}
+
+func kebab(s string) string {
+	return strings.Trim(notName.ReplaceAllString(strings.ToLower(s), "-"), "-")
 }
 
 // preset is a known source with tested rules.

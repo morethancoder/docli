@@ -12,7 +12,7 @@ later `sync` and stale check reuses them. Change them in one of these ways:
 
 | field | default | meaning |
 |---|---|---|
-| `name` | from the URL | folder under `.docli/`. Letters, digits, dashes. |
+| `name` | from the URL (a local file: its file name, or its folder for `index`/`README`) | folder under `.docli/`. Letters, digits, dashes. |
 | `url` | | `http(s)://` page or `file://` path. |
 | `format` | `auto` | `auto`, `html` or `markdown`. `auto` decides from the content type and the text. |
 | `render` | `auto` | `static` fetches the HTML. `browser` loads the page in headless Chrome, for docs built by JavaScript. `auto` tries static first and switches to the browser when the page has no real content. |
